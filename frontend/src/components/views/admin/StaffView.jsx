@@ -244,7 +244,7 @@ const SuperAdminStaffView = () => {
       {/* Title Header with Add Staff trigger button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-100 pb-4 gap-4">
         <div>
-          <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Manage EMR Administrative Staff</h2>
+          <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Manage Adam Care Administrative Staff</h2>
           <p className="text-text-secondary text-sm">Register receptionists and super administrators, and review the current staff registry.</p>
         </div>
         <button
@@ -261,7 +261,7 @@ const SuperAdminStaffView = () => {
       {/* Main EMR Staff List Grid (Full Width) */}
       <div className="w-full">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-heading font-semibold mb-6 text-text-primary">EMR Active Administrative Registry</h3>
+          <h3 className="text-lg font-heading font-semibold mb-6 text-text-primary">Adam Care Active Administrative Registry</h3>
           
           <div ref={listContainerRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[600px] overflow-y-auto pr-1">
             {listLoading ? (

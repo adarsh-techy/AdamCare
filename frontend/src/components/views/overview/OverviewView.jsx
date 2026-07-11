@@ -78,6 +78,11 @@ const Overview = ({ user, setActiveTab }) => {
     { label: '5 PM - 8 PM', count: appointments.filter(a => { const h = getSlotHour(a.slot); return h >= 17 && h < 20; }).length },
   ];
   const maxChartCount = Math.max(...chartSlots.map(c => c.count), 1);
+  // Bar height must be a fixed pixel value, not a percentage — the column
+  // wrapper below is an auto-height flex item (parent row uses items-end),
+  // so a percentage height has no defined ancestor to resolve against and
+  // silently collapses to 0.
+  const CHART_BAR_MAX_PX = 150;
 
   // Calendar Dynamic calculations
   const displayMonthYear = calDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -293,7 +298,7 @@ const Overview = ({ user, setActiveTab }) => {
             <h3 className="text-md font-bold text-slate-800 mb-6">{user.role === 'doctor' ? 'Your Booking Load Distribution' : 'Clinic Booking Load Distribution'}</h3>
             <div className="flex items-end justify-around h-48 pt-4 border-b border-slate-100">
               {chartSlots.map((c, idx) => {
-                const heightPct = (c.count / maxChartCount) * 100;
+                const barHeightPx = Math.max((c.count / maxChartCount) * CHART_BAR_MAX_PX, 10);
                 return (
                   <div key={idx} className="flex flex-col items-center gap-3 w-20 group">
                     <div className="w-full flex justify-center relative">
@@ -302,8 +307,8 @@ const Overview = ({ user, setActiveTab }) => {
                         {c.count} app{c.count !== 1 ? 's' : ''}
                       </span>
                       {/* Animated Column Bar */}
-                      <div 
-                        style={{ height: `${Math.max(heightPct, 6)}%` }} 
+                      <div
+                        style={{ height: `${barHeightPx}px` }}
                         className="w-10 rounded-t-lg bg-gradient-to-t from-primary/80 to-secondary/90 shadow-md group-hover:opacity-95 transition-all duration-300"
                       />
                     </div>

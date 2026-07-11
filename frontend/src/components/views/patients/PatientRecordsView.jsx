@@ -82,7 +82,7 @@ const SearchPatientsView = () => {
 
   return (
     <div className="w-full animate-[fadeIn_0.2s_ease-out]">
-      <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Search EMR Patient Records</h2>
+      <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Search Adam Care Patient Records</h2>
       <p className="text-text-secondary text-sm mb-8">Lookup registered patient files and view their clinical check-up histories.</p>
 
       {/* Search Input Bar */}

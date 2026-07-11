@@ -144,7 +144,7 @@ const SuperAdminDepartmentView = () => {
       {/* Departments Table */}
       <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-heading font-semibold text-text-primary">EMR Department Registry</h3>
+          <h3 className="text-base font-heading font-semibold text-text-primary">Adam Care Department Registry</h3>
           <span className="text-xs font-semibold text-slate-400">{departments.length} department{departments.length !== 1 ? 's' : ''}</span>
         </div>
 

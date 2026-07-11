@@ -210,7 +210,7 @@ const SchedulerGridView = () => {
 
   return (
     <div className="w-full animate-[fadeIn_0.2s_ease-out]">
-      <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Book EMR Appointment</h2>
+      <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Book Adam Care Appointment</h2>
       <p className="text-text-secondary text-sm mb-8">Select doctor, picker date, and choose from the generated dynamic time slots grid.</p>
 
       <div className="flex gap-4 mb-6 flex-wrap">
