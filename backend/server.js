@@ -32,9 +32,31 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+// FRONTEND_URL may hold a comma-separated list (e.g. production + a stable
+// git-branch alias). Vercel also mints a unique preview URL per deployment
+// (adam-care-<hash>-<team>.vercel.app), which can't be enumerated in advance,
+// so those are matched by pattern instead.
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const vercelPreviewPattern = /^https:\/\/adam-care(-[a-z0-9-]+)?\.vercel\.app$/;
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // non-browser requests (curl, server-to-server) send no Origin header
+  return allowedOrigins.includes(origin) || vercelPreviewPattern.test(origin);
+}
+
+const corsOriginHandler = (origin, callback) => {
+  if (isOriginAllowed(origin)) {
+    callback(null, true);
+  } else {
+    callback(new Error(`Origin ${origin} not allowed by CORS`));
+  }
+};
+
 app.use(cors({
-  origin: allowedOrigin,
+  origin: corsOriginHandler,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -59,7 +81,7 @@ const server = http.createServer(app);
 // WebSocket setup
 const io = socketio(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: corsOriginHandler,
     methods: ['GET', 'POST']
   }
 });
