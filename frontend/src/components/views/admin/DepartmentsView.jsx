@@ -28,15 +28,18 @@ const SuperAdminDepartmentView = () => {
   // Delete confirm modal state
   const [deletingDeptId, setDeletingDeptId] = useState(null);
 
-  const fetchDepartments = useCallback(async () => {
-    setLoading(true);
+  // showSpinner is false for refetches after an action (block/delete/edit) so
+  // the table doesn't flash to a loading spinner and back — only the initial
+  // mount needs the full spinner since there's nothing on screen yet.
+  const fetchDepartments = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await api.get('/departments/admin/all');
       setDepartments(res.data.data);
     } catch (e) {
       console.error('Failed to load departments:', e.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, []);
 
@@ -63,7 +66,7 @@ const SuperAdminDepartmentView = () => {
       await api.post('/departments', { name: newDeptName });
       setMessage('Department created successfully!');
       setNewDeptName('');
-      fetchDepartments();
+      fetchDepartments(false);
       notifyDepartmentsChanged();
       setTimeout(() => { setShowCreateModal(false); setMessage(''); }, 1000);
     } catch (error) {
@@ -87,7 +90,7 @@ const SuperAdminDepartmentView = () => {
     try {
       await api.put(`/departments/${editingDept._id}`, { name: editName, workingDays: editDays });
       setEditingDept(null);
-      fetchDepartments();
+      fetchDepartments(false);
       notifyDepartmentsChanged();
     } catch (error) {
       setEditErr(error.response?.data?.message || 'Failed to update department');
@@ -99,7 +102,7 @@ const SuperAdminDepartmentView = () => {
     try {
       await api.put(`/departments/${blockingDept._id}`, { isActive: !blockingDept.isActive });
       setBlockingDept(null);
-      fetchDepartments();
+      fetchDepartments(false);
       notifyDepartmentsChanged();
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to update department status');
@@ -111,7 +114,7 @@ const SuperAdminDepartmentView = () => {
     try {
       await api.delete(`/departments/${deletingDeptId}`);
       setDeletingDeptId(null);
-      fetchDepartments();
+      fetchDepartments(false);
       notifyDepartmentsChanged();
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to delete department');
