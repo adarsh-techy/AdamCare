@@ -53,10 +53,7 @@ const DoctorConsultationView = () => {
     return () => window.removeEventListener('appointment_changed_ws', handleWS);
   }, [fetchMyAppointments]);
 
-  // Safety-net poll: a patient's status (e.g. marked "Arrived" by
-  // reception) should show up here via the socket broadcast above, but if
-  // that socket connection ever drops silently, this keeps the worklist
-  // from going stale for more than a short window.
+  // Also refresh every 20 seconds in case the live update was missed.
   useEffect(() => {
     const interval = setInterval(() => {
       if (user?.id) fetchMyAppointments();

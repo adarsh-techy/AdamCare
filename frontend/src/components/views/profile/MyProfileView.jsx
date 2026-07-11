@@ -4,9 +4,7 @@ import { User as UserIcon, Clock, Pencil, X } from 'lucide-react';
 import api from '../../../services/apiClient';
 import { updateUserProfile } from '../../../store/slices/authSlice';
 
-// Each section starts collapsed to a read-only view with an Edit (pencil)
-// icon. Clicking it reveals the input(s) — the Update/Cancel buttons only
-// appear once you're actually editing, not before.
+// A read-only section that turns into an editable form when you click Edit.
 const SectionCard = ({
   title, hint, isEditing, onEdit, onCancel, onSubmit,
   saving, successMsg, err, submitLabel = 'Update', display, children
