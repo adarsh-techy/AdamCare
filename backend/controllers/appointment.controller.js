@@ -3,13 +3,11 @@ const { notifyAppointmentChange } = require('../services/socket.service');
 const asyncHandler = require('../utils/asyncHandler');
 const Patient = require('../models/Patient');
 
-// @desc    Book a new appointment
-// @route   POST /api/v1/appointments
-// @access  Private (Receptionist or Super Admin)
+// Creates a new appointment booking
 const bookAppointment = asyncHandler(async (req, res, next) => {
   const appointment = await appointmentService.bookAppointment(req.body, req.user);
   
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('created', appointment);
 
   res.status(201).json({
@@ -20,9 +18,7 @@ const bookAppointment = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get appointments list (with pagination, filtering, search)
-// @route   GET /api/v1/appointments
-// @access  Private (Authenticated)
+// Fetches appointments, with optional filters, search, and paging
 const getAppointments = asyncHandler(async (req, res, next) => {
   const filters = {
     patientSearch: req.query.patientSearch,
@@ -33,7 +29,7 @@ const getAppointments = asyncHandler(async (req, res, next) => {
     endDate: req.query.endDate
   };
 
-  // Doctors can only view their own appointments
+  // Doctors can only see their own appointments
   if (req.user.role === 'doctor') {
     filters.doctorId = req.user._id;
   } else if (req.query.doctorId) {
@@ -62,13 +58,11 @@ const getAppointments = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Update appointment details (purpose/notes)
-// @route   PUT /api/v1/appointments/:id
-// @access  Private (Authenticated)
+// Updates an appointment's details
 const updateAppointment = asyncHandler(async (req, res, next) => {
   const appointment = await appointmentService.updateAppointmentDetails(req.params.id, req.body, req.user);
 
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('updated', appointment);
 
   res.status(200).json({
@@ -79,14 +73,12 @@ const updateAppointment = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Cancel an appointment
-// @route   DELETE /api/v1/appointments/:id
-// @access  Private (Authenticated)
+// Cancels an appointment
 const cancelAppointment = asyncHandler(async (req, res, next) => {
   const { reason } = req.body;
   const appointment = await appointmentService.cancelAppointment(req.params.id, reason, req.user);
 
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('cancelled', appointment);
 
   res.status(200).json({
@@ -97,13 +89,11 @@ const cancelAppointment = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Mark patient as arrived
-// @route   POST /api/v1/appointments/:id/arrive
-// @access  Private (Receptionist or Super Admin)
+// Marks a patient as having arrived for their appointment
 const markPatientArrived = asyncHandler(async (req, res, next) => {
   const appointment = await appointmentService.markPatientAsArrived(req.params.id, req.user);
 
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('arrived', appointment);
 
   res.status(200).json({
@@ -114,14 +104,12 @@ const markPatientArrived = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Mark appointment as completed
-// @route   POST /api/v1/appointments/:id/complete
-// @access  Private (Doctor only)
+// Marks an appointment as completed
 const completeAppointment = asyncHandler(async (req, res, next) => {
   const { notes } = req.body;
   const appointment = await appointmentService.markAppointmentCompleted(req.params.id, notes, req.user);
 
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('completed', appointment);
 
   res.status(200).json({
@@ -132,9 +120,7 @@ const completeAppointment = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Search patients by query
-// @route   GET /api/v1/appointments/patients/search
-// @access  Private (Receptionist or Super Admin)
+// Searches for patients matching a query
 const searchPatients = asyncHandler(async (req, res, next) => {
   const { q, date, department } = req.query;
 
@@ -148,9 +134,6 @@ const searchPatients = asyncHandler(async (req, res, next) => {
     ];
   }
 
-  // Optional appointment-level filters (date and/or department) narrow the
-  // result to patients who have a matching appointment, without affecting
-  // the totalVisits/completedVisits counts below, which stay whole-history.
   const appointmentFilter = {};
   if (date) {
     const startOfDay = new Date(date + 'T00:00:00Z');
@@ -220,7 +203,6 @@ const searchPatients = asyncHandler(async (req, res, next) => {
     { $project: { appointments: 0, matchingAppointments: 0 } }
   );
 
-  // Single aggregation pipeline: match patients then join appointment counts
   const patientsWithVisits = await Patient.aggregate(pipeline);
 
   res.status(200).json({
@@ -231,9 +213,7 @@ const searchPatients = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get system audit logs
-// @route   GET /api/v1/appointments/audit/logs
-// @access  Private (Super Admin only)
+// Fetches the system's audit log history
 const getAuditLogs = asyncHandler(async (req, res, next) => {
   const AuditLog = require('../models/AuditLog');
 
@@ -263,13 +243,11 @@ const getAuditLogs = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Delete appointment permanently
-// @route   DELETE /api/v1/appointments/:id/remove
-// @access  Private (Super Admin only)
+// Permanently deletes an appointment
 const deleteAppointmentPermanently = asyncHandler(async (req, res, next) => {
   const deletedApp = await appointmentService.deleteAppointmentPermanently(req.params.id, req.user);
 
-  // Real-time broadcast
+  // Let connected clients know about this change right away
   notifyAppointmentChange('deleted', { _id: deletedApp._id, slot: deletedApp.slot, status: 'deleted' });
 
   res.status(200).json({

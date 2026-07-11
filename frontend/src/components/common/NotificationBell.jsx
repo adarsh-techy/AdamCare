@@ -5,11 +5,7 @@ import api from '../../services/apiClient';
 
 const POLL_INTERVAL_MS = 30000;
 
-// Super-admin-only notification bell for pending qualification-change
-// requests. Clicking an item deep-links to the right list (doctors vs
-// staff) and hands the full user object across via navigation state, so
-// the target page can open the review modal immediately without needing
-// to find that user in its own (paginated) list first.
+// Bell icon showing pending qualification-change requests for review
 const NotificationBell = () => {
   const navigate = useNavigate();
   const [pending, setPending] = useState([]);
@@ -31,9 +27,7 @@ const NotificationBell = () => {
     return () => clearInterval(interval);
   }, [fetchPending]);
 
-  // Live updates via the staff_change socket event (see Dashboard.jsx) — a
-  // new request, approval, or rejection refreshes the badge immediately
-  // instead of waiting for the next poll.
+  // Refresh the list right away when a related change happens elsewhere
   useEffect(() => {
     const handleWS = () => fetchPending();
     window.addEventListener('staff_changed_ws', handleWS);
@@ -52,8 +46,7 @@ const NotificationBell = () => {
   }, [open]);
 
   const handleSelect = (item) => {
-    // Only doctors can have a qualification (and therefore a pending
-    // change) — always routes to Manage Clinic Doctors.
+    // Qualification requests always belong to doctors, so go to that page
     setOpen(false);
     navigate('/doctors', { state: { reviewQualUser: item } });
   };
@@ -75,7 +68,7 @@ const NotificationBell = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[320px] bg-white border border-slate-200/80 shadow-2xl rounded-2xl overflow-hidden z-[9999] animate-[fadeIn_0.15s_ease-out]">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-[320px] bg-white border border-slate-200/80 shadow-2xl rounded-2xl overflow-hidden z-[9999] animate-[fadeIn_0.15s_ease-out]">
           <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
             <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Pending Approvals</p>
           </div>

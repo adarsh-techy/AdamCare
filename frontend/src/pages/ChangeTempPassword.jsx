@@ -15,12 +15,7 @@ const ChangeTempPassword = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Navigating to /login directly (without clearing the session) would just
-  // bounce straight back here, since the account is still flagged
-  // mustChangePassword=true — so "Back" has to log out first, same as the
-  // successful-change path does. Using the shared logoutUser thunk (rather
-  // than clearing localStorage by hand) guarantees the axios instance's
-  // cached auth token gets cleared too, not just redux/localStorage.
+  // Log out first so going back doesn't just bounce right back to this page
   const handleBack = async () => {
     await dispatch(logoutUser());
     navigate('/login', { replace: true });
@@ -51,9 +46,7 @@ const ChangeTempPassword = () => {
     try {
       await api.post('/auth/change-temp-password', { currentPassword, newPassword });
 
-      // Backend already invalidated the session's refresh tokens server-side —
-      // clear the local session (and the axios instance's cached token) too,
-      // and send the user back to log in with the new password.
+      // Password changed, so log out and send the user to log in again
       await dispatch(logoutUser());
       navigate('/login', { state: { passwordChanged: true }, replace: true });
     } catch (err) {

@@ -109,7 +109,7 @@ const AllAppointmentsView = () => {
       <h2 className="text-3xl font-heading font-bold text-text-primary mb-1">Global Appointment Registry</h2>
       <p className="text-text-secondary text-sm mb-8">View, edit, cancel, and permanently delete appointments across EMR clinic databases.</p>
 
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <input
           type="text"
           className="bg-white border border-slate-200 rounded-lg p-3 outline-none text-text-primary focus:border-primary-light focus:ring-3 focus:ring-primary/10 transition-all duration-150 text-sm"
@@ -152,6 +152,7 @@ const AllAppointmentsView = () => {
       ) : (
         <>
           <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-sm mt-6">
+            <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-pink-100/50  border-b border-pink-200/80 ">
                 <tr className="text-text-secondary text-xs uppercase font-bold tracking-wider">
@@ -226,6 +227,7 @@ const AllAppointmentsView = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
 
           {appointments.length === 0 && <p className="text-text-muted text-center text-sm py-12">No appointments matched the filters.</p>}

@@ -358,7 +358,7 @@ const SchedulerGridView = () => {
 
       {bookingSlot && (
         <div className="fixed inset-0 bg-slate-950/40 flex items-center justify-center z-[99999] p-4 animate-[fadeIn_0.15s_ease-out] backdrop-blur-sm">
-          <div className="bg-white border border-slate-200/80 shadow-2xl relative overflow-hidden w-full max-w-[500px] p-8 rounded-2xl">
+          <div className="bg-white border border-slate-200/80 shadow-2xl relative overflow-hidden w-full max-w-[500px] p-4 sm:p-8 rounded-2xl">
             <button className="absolute right-6 top-6 bg-transparent border-none text-text-secondary hover:text-text-primary text-2xl cursor-pointer" onClick={handleCloseBooking}>×</button>
             
             <h3 className="text-xl font-heading font-semibold text-text-primary mb-1">Create Booking: {bookingSlot}</h3>
@@ -424,7 +424,7 @@ const SchedulerGridView = () => {
               )}
 
               {patientType === 'new' && (
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Name</label>
                     <input type="text" placeholder="e.g. John Doe" className="bg-white border border-slate-200 rounded-lg p-2.5 outline-none text-text-primary text-xs" required value={newPatName} onChange={(e) => setNewPatName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))} />

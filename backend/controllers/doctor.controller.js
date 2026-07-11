@@ -6,9 +6,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { createAuditLog } = require('../services/audit.service');
 const { notifyScheduleChange } = require('../services/socket.service');
 
-// @desc    Get all doctors list
-// @route   GET /api/v1/doctors
-// @access  Private (Authenticated)
+// Fetches the list of all doctors
 const getDoctors = asyncHandler(async (req, res, next) => {
   const doctors = await User.find({ role: 'doctor' }).select('name email department avatar qualification readablePassword status');
   res.status(200).json({
@@ -19,9 +17,7 @@ const getDoctors = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Configure doctor default schedule
-// @route   PUT /api/v1/doctors/:id/schedule
-// @access  Private (Super Admin only)
+// Sets up a doctor's default weekly schedule
 const configureSchedule = asyncHandler(async (req, res, next) => {
   const doctorId = req.params.id;
   const { sessions, slotDuration, breakTimings, workingDays } = req.body;
@@ -60,18 +56,14 @@ const configureSchedule = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'Default schedule configured successfully', data: schedule, meta: {} });
 });
 
-// @desc    Get default schedule for a specific doctor
-// @route   GET /api/v1/doctors/:id/schedule
-// @access  Private (Authenticated)
+// Fetches a doctor's default schedule
 const getScheduleByDoctor = asyncHandler(async (req, res, next) => {
   const schedule = await Schedule.findOne({ doctor: req.params.id });
   if (!schedule) return next(new AppError('No schedule found for this doctor', 404));
   res.status(200).json({ success: true, message: 'Schedule retrieved successfully', data: schedule, meta: {} });
 });
 
-// @desc    Get date-specific schedule override
-// @route   GET /api/v1/doctors/:id/schedule/override?date=YYYY-MM-DD
-// @access  Private (Authenticated)
+// Fetches a doctor's schedule override for a specific date
 const getScheduleOverride = asyncHandler(async (req, res, next) => {
   const { date } = req.query;
   if (!date) return next(new AppError('date query param is required', 400));
@@ -80,9 +72,7 @@ const getScheduleOverride = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: override, meta: {} });
 });
 
-// @desc    Create or update date-specific schedule override
-// @route   PUT /api/v1/doctors/:id/schedule/override
-// @access  Private (Super Admin only)
+// Creates or updates a doctor's schedule override for a specific date
 const upsertScheduleOverride = asyncHandler(async (req, res, next) => {
   const doctorId = req.params.id;
   const { date, sessions, slotDuration, breakTimings } = req.body;
@@ -110,9 +100,7 @@ const upsertScheduleOverride = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: `Schedule override set for ${date}`, data: override, meta: {} });
 });
 
-// @desc    Delete date-specific schedule override (revert to default)
-// @route   DELETE /api/v1/doctors/:id/schedule/override?date=YYYY-MM-DD
-// @access  Private (Super Admin only)
+// Removes a schedule override so the date goes back to the default schedule
 const deleteScheduleOverride = asyncHandler(async (req, res, next) => {
   const { date } = req.query;
   if (!date) return next(new AppError('date query param is required', 400));

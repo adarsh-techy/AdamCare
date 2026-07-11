@@ -41,12 +41,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 relative bg-slate-50 overflow-hidden">
-      {/* Left side: Image banner */}
+      {/* Left side shows a banner image */}
       <div className="hidden md:block relative h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${emrBg})` }}>
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/20 via-transparent to-slate-900/10 backdrop-blur-[0.5px]"></div>
       </div>
 
-      {/* Right side: Login form — full-height panel, no floating card */}
+      {/* Right side has the login form */}
       <div className="flex items-center justify-center relative p-5 md:p-10 bg-white">
         <div className="relative w-full max-w-[400px]">
           <div className="text-center mb-6">
@@ -85,10 +85,7 @@ const Login = () => {
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Password</label>
-                {/* Entry point into the "Forgot Password" flow — see
-                    ForgotPassword.jsx / ResetPassword.jsx and the matching
-                    /forgot-password, /reset-password/:token routes in
-                    App.jsx. Public routes, since a user here has no session. */}
+                {/* Link to start the forgot password flow */}
                 <Link to="/forgot-password" className="text-xs font-semibold text-primary hover:text-primary-light">
                   Forgot Password?
                 </Link>

@@ -1,8 +1,4 @@
-// Step 1 of the "Forgot Password" flow. Linked from Login.jsx.
-// User submits their email here → backend/controllers/auth.controller.js's
-// forgotPassword sends a reset link (if that email has an account) →
-// clicking that email link lands on ResetPassword.jsx (step 2), which reads
-// the :token from the URL.
+// First step of the forgot password flow, where the user enters their email
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KeyRound } from 'lucide-react';
@@ -11,9 +7,7 @@ import api from '../services/apiClient';
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  // Once true, we permanently show the "check your inbox" message instead
-  // of the form again — see the comment in the catch block below for why
-  // this happens on BOTH success and failure.
+  // True once the form has been submitted, to show the confirmation message
   const [submitted, setSubmitted] = useState(false);
   const [err, setErr] = useState('');
 
@@ -30,13 +24,7 @@ const ForgotPassword = () => {
     try {
       await api.post('/auth/forgot-password', { email });
     } catch (e) {
-      // Intentionally EMPTY — do not surface this error, and note we still
-      // fall through to setSubmitted(true) below either way. The backend
-      // always returns 200 with the same generic message whether or not
-      // the email is registered (see forgotPassword's genericResponse() in
-      // auth.controller.js), specifically so this page can't be used to
-      // discover which emails have accounts. If we showed a different
-      // message here on error, we'd defeat that protection.
+      // Stay quiet on errors so we don't reveal which emails are registered
     } finally {
       setLoading(false);
       setSubmitted(true);

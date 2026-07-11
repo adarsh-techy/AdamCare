@@ -51,8 +51,7 @@ const SuperAdminStaffView = () => {
   const [verifyErr, setVerifyErr] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Lazy-loads staff 10 at a time instead of fetching everyone upfront.
-  // pageNum=1 replaces the list (fresh load); pageNum>1 appends.
+  // Load staff in pages of 10 instead of all at once.
   const fetchStaffPage = useCallback(async (pageNum) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
@@ -80,9 +79,7 @@ const SuperAdminStaffView = () => {
 
   const hasMoreStaff = staffList.length < totalStaff;
 
-  // On-scroll pagination inside the registry's own scrollable container
-  // (it has a fixed max-height, not the window) — load the next 10 once
-  // the user nears the bottom of that container.
+  // Load more staff when the user scrolls near the bottom of the list.
   useEffect(() => {
     const el = listContainerRef.current;
     if (!el) return;

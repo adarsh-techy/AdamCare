@@ -2,9 +2,7 @@ const AppError = require('../utils/appError');
 const asyncHandler = require('../utils/asyncHandler');
 const { generateSlotsForDoctor } = require('../services/slot.service');
 
-// @desc    Get dynamic slots and availability for a doctor on a specific date
-// @route   GET /api/v1/slots
-// @access  Private (Authenticated)
+// Fetches available appointment slots for a doctor on a given date
 const getSlots = asyncHandler(async (req, res, next) => {
   const { doctorId, date } = req.query;
 

@@ -5,10 +5,7 @@ import api from '../../../services/apiClient';
 
 const PAGE_SIZE = 5;
 
-// Dashboard's main content area (Dashboard.jsx's <main>) is what actually
-// scrolls — the window/document never does in this fixed-shell layout — so
-// walk up from a ref inside this view to find whichever ancestor really is
-// scrollable, rather than assuming window.
+// Find the closest parent element that actually scrolls.
 const findScrollParent = (el) => {
   let node = el?.parentElement;
   while (node && node !== document.body) {
@@ -58,10 +55,7 @@ const SuperAdminDoctorView = () => {
   const [reviewQualLoading, setReviewQualLoading] = useState(false);
   const [reviewQualErr, setReviewQualErr] = useState('');
 
-  // Deep-link from the notification bell: it hands over the full user
-  // object via navigation state (rather than just an ID) so this modal can
-  // open immediately without needing that user to already be in this
-  // view's own paginated list.
+  // Open the review modal if we were sent here from a notification.
   useEffect(() => {
     if (location.state?.reviewQualUser) {
       setReviewingQualDoc(location.state.reviewQualUser);
@@ -96,8 +90,7 @@ const SuperAdminDoctorView = () => {
   const [editAvatar, setEditAvatar] = useState('');
   const [editErr, setEditErr] = useState('');
 
-  // Lazy-loads doctors 5 at a time instead of fetching the whole registry.
-  // pageNum=1 replaces the list (fresh load / filter change); pageNum>1 appends.
+  // Load doctors in pages of 5 instead of all at once.
   const fetchDoctorsPage = useCallback(async (pageNum, deptFilter) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
@@ -138,16 +131,13 @@ const SuperAdminDoctorView = () => {
     fetchDepartments();
   }, [fetchDepartments]);
 
-  // Manage Clinic Departments stays mounted in another tab and dispatches
-  // this after any create/edit/block/delete, so this view's department
-  // options (filter, register, edit) stay live without a full page refresh.
+  // Refresh the department list when departments change elsewhere in the app.
   useEffect(() => {
     window.addEventListener('departments_changed', fetchDepartments);
     return () => window.removeEventListener('departments_changed', fetchDepartments);
   }, [fetchDepartments]);
 
-  // Re-runs (resetting to page 1) whenever the department filter changes,
-  // since fetchDoctors' identity changes with selectedDeptFilter.
+  // Reload doctors from page 1 whenever the department filter changes.
   useEffect(() => {
     fetchDoctors();
   }, [fetchDoctors]);
@@ -381,8 +371,7 @@ const SuperAdminDoctorView = () => {
     reader.readAsDataURL(file);
   };
 
-  // Department filtering now happens server-side (see fetchDoctorsPage), so
-  // doctorList already only contains matching doctors — just group for display.
+  // Group the already-filtered doctor list by department for display.
   const groupedDoctors = useMemo(() => {
     const groups = doctorList.reduce((acc, doc) => {
       const dept = doc.department || 'General';
@@ -395,9 +384,7 @@ const SuperAdminDoctorView = () => {
 
   const hasMoreDoctors = doctorList.length < totalDoctors;
 
-  // On-scroll pagination: load the next 5 once the user nears the bottom of
-  // the actual scrolling container (Dashboard's <main>), instead of a
-  // manual "Load More" click.
+  // Load more doctors automatically when the user scrolls near the bottom.
   useEffect(() => {
     const scrollEl = findScrollParent(rootRef.current);
     const isWindowScroll = scrollEl === document.scrollingElement || scrollEl === document.documentElement;
@@ -495,6 +482,7 @@ const SuperAdminDoctorView = () => {
               </div>
 
               {/* Table */}
+              <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-white">
@@ -552,7 +540,7 @@ const SuperAdminDoctorView = () => {
                       {/* Action */}
                       <td className="px-6 py-3.5">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* View — disabled once the doctor has set their own password (no longer viewable) */}
+                          {/* View password, disabled if doctor set their own */}
                           <button
                             onClick={() => handleOpenReveal(doc)}
                             disabled={doc.mustChangePassword === false}
@@ -562,7 +550,7 @@ const SuperAdminDoctorView = () => {
                             <Eye size={13} />
                           </button>
 
-                          {/* Edit — disabled once the doctor has set their own password (profile is locked from admin changes) */}
+                          {/* Edit doctor, disabled if profile is locked */}
                           <button
                             onClick={() => handleOpenEdit(doc)}
                             disabled={doc.mustChangePassword === false}
@@ -599,13 +587,13 @@ const SuperAdminDoctorView = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ))
         )}
       </div>
 
-      {/* On-scroll pagination — fetches 5 more doctors automatically as you
-          scroll near the bottom, instead of loading everything upfront */}
+      {/* Shows how many doctors are loaded and loads more on scroll */}
       {!listLoading && doctorList.length > 0 && (
         <div className="flex flex-col items-center gap-2 mt-6">
           {loadingMore && (
@@ -1036,7 +1024,7 @@ const SuperAdminDoctorView = () => {
         </div>
       )}
 
-      {/* Qualification Change Review Modal — old vs new value, Approve/Reject */}
+      {/* Modal to approve or reject a qualification change request */}
       {reviewingQualDoc && (
         <div className="fixed inset-0 bg-slate-950/40 flex items-center justify-center z-[99999] p-4 animate-[fadeIn_0.15s_ease-out] backdrop-blur-sm">
           <div className="bg-white border border-slate-200/80 shadow-2xl relative w-full max-w-[420px] p-6 rounded-2xl animate-[scaleIn_0.15s_ease-out]">

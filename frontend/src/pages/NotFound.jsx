@@ -9,17 +9,17 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_50%_0%,#ecfeff_0%,#f0f9ff_40%,#f8fafc_100%)] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background glow blobs */}
+      {/* Soft glowing background shapes for decoration */}
       <div className="absolute w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(13,105,93,0.07)_0%,rgba(0,0,0,0)_70%)] top-[-10%] left-[-10%] pointer-events-none" />
       <div className="absolute w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(14,165,233,0.06)_0%,rgba(0,0,0,0)_70%)] bottom-[-10%] right-[-10%] pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        {/* Logo */}
+        {/* App logo icon */}
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center mb-8 shadow-[0_0_20px_rgba(13,105,93,0.2)]">
           <Stethoscope size={24} color="white" />
         </div>
 
-        {/* 404 number */}
+        {/* Big 404 text */}
         <div className="relative mb-4">
           <span className="text-[120px] font-heading font-bold leading-none bg-gradient-to-br from-primary via-primary-light to-secondary bg-clip-text text-transparent select-none">
             404
@@ -39,7 +39,7 @@ const NotFound = () => {
           Double-check the URL or head back to a safe place.
         </p>
 
-        {/* Actions */}
+        {/* Buttons to go back or return home */}
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <button
             onClick={() => navigate(-1)}
@@ -56,7 +56,7 @@ const NotFound = () => {
           </button>
         </div>
 
-        {/* Brand footer */}
+        {/* App name footer */}
         <p className="mt-10 text-[11px] text-text-muted">
           Adam Care · Appointment Management System
         </p>

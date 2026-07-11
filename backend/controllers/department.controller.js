@@ -2,25 +2,19 @@ const Department = require('../models/Department');
 const AppError = require('../utils/appError');
 const asyncHandler = require('../utils/asyncHandler');
 
-// @desc    Get all departments
-// @route   GET /api/v1/departments
-// @access  Public
+// Fetches all active departments
 const getDepartments = asyncHandler(async (req, res, next) => {
   const departments = await Department.find({ isActive: { $ne: false } }).sort({ name: 1 });
   res.status(200).json({ success: true, data: departments });
 });
 
-// @desc    Get all departments including blocked ones (for admin management)
-// @route   GET /api/v1/departments/admin/all
-// @access  Private (Super Admin)
+// Fetches all departments, including blocked ones, for admin management
 const getAllDepartmentsAdmin = asyncHandler(async (req, res, next) => {
   const departments = await Department.find({}).sort({ name: 1 });
   res.status(200).json({ success: true, data: departments });
 });
 
-// @desc    Create a new department
-// @route   POST /api/v1/departments
-// @access  Private (Super Admin)
+// Creates a new department
 const createDepartment = asyncHandler(async (req, res, next) => {
   const { name, workingDays } = req.body;
   if (!name) return next(new AppError('Please provide department name', 400));
@@ -37,9 +31,7 @@ const createDepartment = asyncHandler(async (req, res, next) => {
   res.status(201).json({ success: true, data: department });
 });
 
-// @desc    Update a department
-// @route   PUT /api/v1/departments/:id
-// @access  Private (Super Admin)
+// Updates a department
 const updateDepartment = asyncHandler(async (req, res, next) => {
   const { name, workingDays, isActive } = req.body;
   const department = await Department.findById(req.params.id);
@@ -53,9 +45,7 @@ const updateDepartment = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: department });
 });
 
-// @desc    Delete a department
-// @route   DELETE /api/v1/departments/:id
-// @access  Private (Super Admin)
+// Deletes a department
 const deleteDepartment = asyncHandler(async (req, res, next) => {
   const department = await Department.findById(req.params.id);
   if (!department) return next(new AppError('Department not found', 404));

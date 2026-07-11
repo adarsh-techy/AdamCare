@@ -1,7 +1,4 @@
-// Returns the browser's current local calendar date as 'YYYY-MM-DD'.
-// Deliberately avoids Date#toISOString(), which converts to UTC and can
-// report the wrong calendar day whenever the local timezone is ahead of UTC
-// (e.g. it would show "yesterday" for IST users between 00:00-05:29 local time).
+// Gets today's date in the user's own timezone as 'YYYY-MM-DD'
 export const getTodayDateStr = () => {
   const d = new Date();
   const year = d.getFullYear();

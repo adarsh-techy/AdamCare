@@ -1,12 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import api, { setApiToken, clearApiToken } from '../../services/apiClient';
 
-// Read straight from localStorage synchronously at store-creation time,
-// rather than waiting for the initializeAuth() thunk to dispatch inside a
-// useEffect. Without this, accessToken starts as null on the very first
-// render after a hard refresh — long enough for ProtectedRoute to bounce
-// to /login and for Login.jsx to then redirect to its hardcoded /overview
-// once the token does arrive, losing whatever page was actually requested.
+// Load the saved user right away so the app doesn't flash a logged-out state on refresh
 const readStoredUser = () => {
   try {
     const userStr = localStorage.getItem('user');
@@ -50,17 +45,13 @@ const authSlice = createSlice({
       state.error = null;
     },
     requirePasswordChange: (state) => {
-      // Backend locked the account behind a temp-password change mid-session
-      // (e.g. an admin reset it) — flip the flag so ProtectedRoute redirects
-      // without needing a fresh login round-trip.
+      // Mark that the user must change their password before continuing
       if (state.user) {
         state.user = { ...state.user, mustChangePassword: true };
       }
     },
     updateUserProfile: (state, action) => {
-      // Patches self-service profile edits (name/avatar) into the cached
-      // user immediately, so the sidebar reflects them without a re-login —
-      // same approach as requirePasswordChange above.
+      // Update the saved user profile with the new changes
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
         localStorage.setItem('user', JSON.stringify(state.user));
@@ -88,10 +79,7 @@ export const loginUser = (credentials) => async (dispatch) => {
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
 
-    // Without this, the axios instance keeps using whichever token was
-    // cached before (e.g. a previous user's session in the same tab), so
-    // every request after a client-side login would silently act as the
-    // wrong account until a hard page reload re-synced it from localStorage.
+    // Make sure future requests use the new login token
     setApiToken(accessToken);
 
     dispatch(loginSuccess({ user, accessToken, refreshToken }));

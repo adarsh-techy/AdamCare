@@ -17,27 +17,21 @@ const formatMinutesToTime = (mins) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-/**
- * Generate slots for a doctor on a given date
- * @param {string} doctorId - ObjectId of doctor user
- * @param {string} dateStr - YYYY-MM-DD string representation of the date
- */
+// Builds the list of appointment slots for a doctor on a given date
 const generateSlotsForDoctor = async (doctorId, dateStr) => {
   const doctor = await User.findById(doctorId);
   if (!doctor) {
     throw new AppError('Doctor not found', 404);
   }
 
-  // Parse date at local noon to avoid timezone rolling shifts
+  // Use noon so the date doesn't shift due to timezones
   const dateObj = new Date(dateStr + 'T12:00:00');
   if (isNaN(dateObj.getTime())) {
     throw new AppError('Invalid date format. Expected YYYY-MM-DD.', 400);
   }
   const dayOfWeek = dateObj.getDay();
 
-  // A date-specific override, if present, takes priority over everything
-  // else below and applies only to this date — it implies the doctor is
-  // explicitly working that day.
+  // A one-off override for this date beats the normal schedule if it exists
   const override = await ScheduleOverride.findOne({ doctor: doctorId, date: dateStr });
 
   // An inactive department closes the clinic entirely for that department,

@@ -19,18 +19,15 @@ router.post('/logout', logout);
 router.post('/refresh', refresh);
 router.post('/change-temp-password', protect, changeTempPasswordValidator, validate, changeTempPassword);
 
-// "Forgot Password" flow — deliberately NOT behind `protect`, since a user
-// requesting this has by definition lost access to their account and can't
-// present a valid JWT. Security instead comes from the emailed, single-use,
-// time-limited token (see auth.controller.js forgotPassword/resetPassword).
+// Forgot/reset password does not need login since the user is locked out; a special emailed token keeps it secure
 router.post('/forgot-password', forgotPasswordValidator, validate, forgotPassword);
 router.post('/reset-password/:token', resetPasswordValidator, validate, resetPassword);
 
-// Self-service profile — any authenticated role, own account only
+// Logged-in users can view and edit their own profile here
 router.get('/me', protect, getMe);
 router.put('/me', protect, updateMeValidator, validate, updateMe);
 
-// Registration & Management of staff — Super Admin only
+// Only super admins can manage staff accounts below
 router.post('/register', protect, authorize('super_admin'), registerUserValidator, validate, registerStaff);
 router.get('/staff', protect, authorize('super_admin'), getStaff);
 router.get('/staff/pending-qualifications', protect, authorize('super_admin'), getPendingQualifications);

@@ -6,8 +6,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Fail fast on missing config rather than silently falling back to a
-// hardcoded secret at the point of use (a real security risk for JWTs).
+// Stop the app right away if important settings are missing, instead of using an unsafe default later
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
 if (missingEnvVars.length > 0) {
@@ -32,10 +31,7 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-// FRONTEND_URL may hold a comma-separated list (e.g. production + a stable
-// git-branch alias). Vercel also mints a unique preview URL per deployment
-// (adam-care-<hash>-<team>.vercel.app), which can't be enumerated in advance,
-// so those are matched by pattern instead.
+// FRONTEND_URL can list several allowed sites, and Vercel preview URLs are matched separately by a pattern
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
@@ -43,7 +39,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
 const vercelPreviewPattern = /^https:\/\/adam-care(-[a-z0-9-]+)?\.vercel\.app$/;
 
 function isOriginAllowed(origin) {
-  if (!origin) return true; // non-browser requests (curl, server-to-server) send no Origin header
+  if (!origin) return true; // allow requests with no origin, like server-to-server calls
   return allowedOrigins.includes(origin) || vercelPreviewPattern.test(origin);
 }
 
@@ -61,14 +57,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// API Routes
+// Connect each feature's routes to the app
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/slots', slotRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/departments', departmentRoutes);
 
-// Catch-all for unhandled routes
+// Handle any route that doesn't match, with a 404 error
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
@@ -78,7 +74,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
-// WebSocket setup
+// Set up real-time communication with sockets
 const io = socketio(server, {
   cors: {
     origin: corsOriginHandler,

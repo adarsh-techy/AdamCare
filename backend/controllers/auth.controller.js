@@ -8,9 +8,7 @@ const { createAuditLog } = require('../services/audit.service');
 const { notifyStaffChange } = require('../services/socket.service');
 const { sendPasswordResetEmail } = require('../services/email.service');
 
-// @desc    Authenticate user & get tokens
-// @route   POST /api/v1/auth/login
-// @access  Public
+// Logs a user in and gives them access tokens
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -57,9 +55,7 @@ const login = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Refresh access token
-// @route   POST /api/v1/auth/refresh
-// @access  Public
+// Issues a new access token using a valid refresh token
 const refresh = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.body;
 
@@ -96,9 +92,7 @@ const refresh = asyncHandler(async (req, res, next) => {
   }
 });
 
-// @desc    Logout user & invalidate refresh token
-// @route   POST /api/v1/auth/logout
-// @access  Public (or Protected, but public is safe if token is passed in body)
+// Logs a user out and invalidates their refresh token
 const logout = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.body;
 
@@ -128,9 +122,7 @@ const logout = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Register a new staff member (Admin/Doctor/Receptionist)
-// @route   POST /api/v1/auth/register
-// @access  Private (Super Admin only)
+// Creates a new staff account
 const registerStaff = asyncHandler(async (req, res, next) => {
   const { name, email, password, role, department, avatar, qualification } = req.body;
 
@@ -184,8 +176,7 @@ const getStaff = asyncHandler(async (req, res, next) => {
   if (excludeRole) query.role = { $ne: excludeRole };
   if (department) query.department = department;
 
-  // No page/limit requested (e.g. Manage Staff view) — keep the original,
-  // unpaginated full-list behavior for backwards compatibility.
+  
   if (!page && !limit) {
     const staff = await User.find(query).select('name email role department avatar qualification pendingQualification status mustChangePassword');
     return res.status(200).json({
@@ -241,7 +232,7 @@ const deleteStaff = asyncHandler(async (req, res, next) => {
 
   await User.findByIdAndDelete(staffId);
 
-  // Create Audit Log
+  // Log this action for the audit trail
   await createAuditLog({
     userId: req.user._id,
     role: req.user.role,
@@ -266,10 +257,7 @@ const updateStaff = asyncHandler(async (req, res, next) => {
     return next(new AppError('Staff member not found', 404));
   }
 
-  // Once a user has taken ownership of their password, an admin can no
-  // longer edit their profile at all — name, email, department, avatar,
-  // qualification, or password. Block/unblock (status) is the one action
-  // that still needs to work through this same endpoint, so it's excluded.
+  
   const isProfileEdit = [name, email, department, avatar, qualification, password].some((v) => v !== undefined);
   if (isProfileEdit && !staff.mustChangePassword) {
     return next(new AppError('This user has set their own password. Their profile can no longer be edited by an admin.', 403));
@@ -296,7 +284,7 @@ const updateStaff = asyncHandler(async (req, res, next) => {
 
   await staff.save();
 
-  // Create Audit Log
+  // Log this action for the audit trail
   await createAuditLog({
     userId: req.user._id,
     role: req.user.role,
@@ -313,7 +301,6 @@ const updateStaff = asyncHandler(async (req, res, next) => {
   });
 });
 
-// Verify the requesting admin's own password then return the target staff member's readablePassword
 const revealPassword = asyncHandler(async (req, res, next) => {
   const { adminPassword } = req.body;
   if (!adminPassword) {
@@ -341,9 +328,7 @@ const revealPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Self-service: replace an admin-issued temporary password with one only the user knows
-// @route   POST /api/v1/auth/change-temp-password
-// @access  Private (any authenticated role)
+// Lets a user replace their temporary password with their own
 const changeTempPassword = asyncHandler(async (req, res, next) => {
   const { currentPassword, newPassword } = req.body;
 
@@ -355,7 +340,7 @@ const changeTempPassword = asyncHandler(async (req, res, next) => {
   user.password = newPassword;
   user.readablePassword = '';
   user.mustChangePassword = false;
-  user.refreshTokens = []; // force every existing session to re-authenticate
+  user.refreshTokens = []; // Log out all other sessions so they must sign in again
   await user.save();
 
   await createAuditLog({
@@ -374,9 +359,7 @@ const changeTempPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get the logged-in user's own profile
-// @route   GET /api/v1/auth/me
-// @access  Private (any authenticated role)
+// Gets the logged-in user's own profile
 const getMe = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   res.status(200).json({
@@ -396,10 +379,7 @@ const getMe = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    List every staff member with a pending qualification change —
-//          powers the super admin's notification bell.
-// @route   GET /api/v1/auth/staff/pending-qualifications
-// @access  Private (Super Admin only)
+// Lists staff members with a qualification change waiting for approval
 const getPendingQualifications = asyncHandler(async (req, res, next) => {
   const pending = await User.find({ pendingQualification: { $ne: null } })
     .select('name role department qualification pendingQualification');
@@ -412,11 +392,7 @@ const getPendingQualifications = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Self-service profile update — name/avatar apply immediately,
-//          qualification goes into a pending state awaiting admin approval,
-//          password requires the current password and applies immediately.
-// @route   PUT /api/v1/auth/me
-// @access  Private (any authenticated role)
+// Updates the logged-in user's own profile
 const updateMe = asyncHandler(async (req, res, next) => {
   const { name, avatar, qualification, currentPassword, newPassword } = req.body;
 
@@ -486,9 +462,7 @@ const updateMe = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Approve a staff member's pending qualification change
-// @route   POST /api/v1/auth/staff/:id/approve-qualification
-// @access  Private (Super Admin only)
+// Approves a staff member's requested qualification change
 const approveQualification = asyncHandler(async (req, res, next) => {
   const staff = await User.findById(req.params.id);
   if (!staff) {
@@ -520,9 +494,7 @@ const approveQualification = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Reject a staff member's pending qualification change
-// @route   POST /api/v1/auth/staff/:id/reject-qualification
-// @access  Private (Super Admin only)
+// Rejects a staff member's requested qualification change
 const rejectQualification = asyncHandler(async (req, res, next) => {
   const staff = await User.findById(req.params.id);
   if (!staff) {
@@ -553,20 +525,11 @@ const rejectQualification = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Step 1 of the "Forgot Password" flow — user submits their email,
-//          we email them a one-time link if an account exists for it.
-// @route   POST /api/v1/auth/forgot-password
-// @access  Public (this runs before the user is authenticated — that's the
-//          whole point, they've lost access to their account)
+// First step of password reset: emails a reset link if the account exists
 const forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
 
-  // SECURITY: always return this exact same response whether the email
-  // exists or not, and at roughly the same speed either way. If we instead
-  // returned "email not found" for unregistered addresses, this endpoint
-  // could be used to silently check which emails have accounts (an
-  // "account enumeration" attack) — every branch below funnels back to
-  // this one response.
+  // Always send the same response so no one can guess which emails are registered
   const genericResponse = () => res.status(200).json({
     success: true,
     message: 'If that email is registered, a password reset link has been sent.',
@@ -579,27 +542,19 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
     return genericResponse();
   }
 
-  // Generate a random, unguessable token. We email the RAW value to the
-  // user but only ever save its hash to the database (see the
-  // resetPasswordToken field comment in models/User.js for why). 32 random
-  // bytes = 64 hex characters, way beyond brute-force range.
+  // Make a random reset token, email the plain version, save only its hash
   const rawToken = crypto.randomBytes(32).toString('hex');
   user.resetPasswordToken = crypto.createHash('sha256').update(rawToken).digest('hex');
   user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // valid for 30 minutes
   await user.save();
 
-  // Points at the frontend's ResetPassword.jsx page, which reads :token
-  // from the URL and POSTs it back to /reset-password/:token below.
+  // Build the link to the frontend's reset password page
   const resetLink = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
 
   try {
     await sendPasswordResetEmail(user.email, resetLink);
   } catch (err) {
-    // If SMTP isn't configured yet (see EMAIL_USER/EMAIL_PASS in .env) or
-    // the send otherwise fails, we deliberately do NOT tell the client —
-    // that would leak the same "does this email exist" information the
-    // genericResponse() above is designed to hide. Just log it so we (the
-    // developers) can see it happened.
+    // Don't tell the client if the email failed to send, just log it
     console.error('Failed to send password reset email:', err.message);
   }
 
@@ -614,45 +569,31 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   return genericResponse();
 });
 
-// @desc    Step 2 of the "Forgot Password" flow — user clicked the emailed
-//          link and is submitting a new password along with the token from
-//          that link's URL.
-// @route   POST /api/v1/auth/reset-password/:token
-// @access  Public (same reasoning as forgotPassword above)
+// Second step of password reset: sets a new password using the emailed token
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { newPassword } = req.body;
 
-  // Hash the token from the URL the same way it was hashed when stored, so
-  // we can look it up by equality — we never stored (or could recover) the
-  // raw token itself.
+  // Hash the token from the URL so it matches what's stored in the database
   const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-  // Both conditions must hold: the hash must match AND the stored expiry
-  // must still be in the future. A token that matches but has expired (or
-  // was already used — see below) will simply find no user here.
+  // Find the user only if the token matches and hasn't expired
   const user = await User.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() }
-  }).select('+resetPasswordToken +resetPasswordExpires'); // excluded by default, must opt in
+  }).select('+resetPasswordToken +resetPasswordExpires'); // these fields are hidden by default, so ask for them here
 
   if (!user) {
     return next(new AppError('This reset link is invalid or has expired.', 400));
   }
 
-  user.password = newPassword; // re-hashed automatically by the pre('save') hook in models/User.js
-  user.readablePassword = ''; // no admin-visible plaintext copy for a self-set password
-  // Successfully resetting via a verified email link counts as "owning"
-  // this password, same as the temp-password-change flow — from now on
-  // only this user can view/change it (see revealPassword/updateStaff,
-  // which both check this flag before letting an admin touch the account).
+  user.password = newPassword; // gets hashed automatically before saving
+  user.readablePassword = ''; // clear the plaintext copy since the user set this password themselves
+  // Resetting the password this way means only the user can change it now
   user.mustChangePassword = false;
-  // Clear the token immediately so it can't be redeemed a second time —
-  // this is what makes the link single-use rather than reusable until expiry.
+  // Clear the token so the reset link can't be used again
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
-  // Force every other device/tab currently logged into this account to
-  // re-authenticate, in case the password was forgotten because someone
-  // else had unwanted access.
+  // Log out all other sessions in case someone else had access
   user.refreshTokens = [];
   await user.save();
 

@@ -29,9 +29,7 @@ const SuperAdminDepartmentView = () => {
   // Delete confirm modal state
   const [deletingDeptId, setDeletingDeptId] = useState(null);
 
-  // showSpinner is false for refetches after an action (block/delete/edit) so
-  // the table doesn't flash to a loading spinner and back — only the initial
-  // mount needs the full spinner since there's nothing on screen yet.
+  // Only show the spinner on first load, not on quiet background refreshes.
   const fetchDepartments = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     try {
@@ -44,9 +42,7 @@ const SuperAdminDepartmentView = () => {
     }
   }, []);
 
-  // Other tabs (Doctors, Schedules) stay mounted in the background and only
-  // fetch departments once on load, so they'd otherwise show stale data
-  // until a full page refresh — this notifies them to refetch immediately.
+  // Let other tabs know the department list changed, so they can refresh too.
   const notifyDepartmentsChanged = () => window.dispatchEvent(new Event('departments_changed'));
 
   useEffect(() => {
@@ -155,6 +151,7 @@ const SuperAdminDepartmentView = () => {
         ) : departments.length === 0 ? (
           <p className="text-text-muted text-center text-sm py-14">No departments configured yet.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50">
@@ -222,6 +219,7 @@ const SuperAdminDepartmentView = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

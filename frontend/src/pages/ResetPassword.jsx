@@ -1,17 +1,11 @@
-// Step 2 of the "Forgot Password" flow — reached only via the link emailed
-// by ForgotPassword.jsx (step 1). The token in the URL is single-use and
-// expires 30 minutes after being requested (enforced server-side in
-// auth.controller.js's resetPassword); this page has no way to know that
-// in advance, so an invalid/expired token just surfaces as a submit error.
+// Second step of the forgot password flow, reached from the emailed link
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import api from '../services/apiClient';
 
 const ResetPassword = () => {
-  // :token comes straight from the URL — see the /reset-password/:token
-  // route in App.jsx. We just forward it to the backend as-is; all the
-  // actual validation (hash match + expiry) happens server-side.
+  // Get the reset token from the URL
   const { token } = useParams();
   const navigate = useNavigate();
 
@@ -40,15 +34,10 @@ const ResetPassword = () => {
     setLoading(true);
     try {
       await api.post(`/auth/reset-password/${token}`, { newPassword });
-      // Mirrors ChangeTempPassword.jsx's post-success pattern: send the user
-      // back to Login with a flag Login.jsx reads to show a success banner,
-      // rather than trying to auto-log them in here.
+      // Send the user to login and show a success message there
       navigate('/login', { state: { passwordChanged: true }, replace: true });
     } catch (e) {
-      // The backend's message here IS meant to be shown (unlike
-      // forgot-password's silent-failure pattern) — "invalid or expired
-      // token" doesn't leak anything about which emails are registered,
-      // it's just telling the user their specific link didn't work.
+      // Show the backend's error message, like an expired or invalid link
       setErr(e.response?.data?.message || 'Failed to reset password.');
     } finally {
       setLoading(false);
@@ -70,10 +59,7 @@ const ResetPassword = () => {
           {err && (
             <div className="bg-danger-bg text-danger border border-danger/20 p-2.5 rounded-lg text-xs text-center">
               {err}
-              {/* Only worth offering "get a new link" when the token itself
-                  is the problem (expired/already used/invalid) — a
-                  validation error like "too short" doesn't need it, since
-                  the same token is still usable once they fix the password. */}
+              {/* Only show this link when the error is about a bad token */}
               {/(invalid|expired)/i.test(err) && (
                 <>
                   {' '}

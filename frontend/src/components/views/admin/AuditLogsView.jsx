@@ -3,11 +3,7 @@ import api from '../../../services/apiClient';
 
 const PAGE_SIZE = 10;
 
-// Dashboard's main content area (Dashboard.jsx's <main>) is the element that
-// actually scrolls — the window/document never does, since the sidebar+header
-// layout is a fixed-height flex box with overflow-y-auto on that <main>.
-// Walk up from a ref inside this view to find whichever ancestor is really
-// scrollable, so this works regardless of exactly how it's mounted.
+// Find the closest parent element that actually scrolls.
 const findScrollParent = (el) => {
   let node = el?.parentElement;
   while (node && node !== document.body) {
@@ -29,8 +25,7 @@ const AuditLogsView = () => {
   const [err, setErr] = useState('');
   const rootRef = useRef(null);
 
-  // Guards against firing a second fetch while one is already in flight,
-  // since scroll events fire far more often than we want to hit the API.
+  // Tracks whether a fetch is already running, to avoid duplicate requests.
   const fetchingRef = useRef(false);
 
   const fetchLogs = useCallback(async (pageNum) => {
@@ -60,8 +55,7 @@ const AuditLogsView = () => {
 
   const hasMore = logs.length < totalLogs;
 
-  // On-scroll pagination: load the next 10 once the user nears the bottom
-  // of the actual scrolling container, instead of fetching everything upfront.
+  // Load more logs automatically when the user scrolls near the bottom.
   useEffect(() => {
     const scrollEl = findScrollParent(rootRef.current);
     const isWindowScroll = scrollEl === document.scrollingElement || scrollEl === document.documentElement;

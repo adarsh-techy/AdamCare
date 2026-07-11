@@ -6,13 +6,11 @@ const { generateSlotsForDoctor } = require('./slot.service');
 const { createAuditLog } = require('./audit.service');
 const { getTodayDateStr } = require('../utils/dateUtils');
 
-/**
- * Book an appointment
- */
+// Books a new appointment for a patient
 const bookAppointment = async (data, requestUser) => {
   const {
     doctorId,
-    date, // YYYY-MM-DD
+    date, // date in YYYY-MM-DD format
     slot,
     purpose,
     patientType,
@@ -59,7 +57,7 @@ const bookAppointment = async (data, requestUser) => {
       throw new AppError(`Patient with ID ${patientId} not found.`, 404);
     }
   } else {
-    // Avoid creating duplicate profiles for same name/mobile
+    // Reuse an existing patient if the name and mobile number already match
     patient = await Patient.findOne({ name: patientName, mobileNumber: patientMobile });
     if (!patient) {
       patient = new Patient({
@@ -73,7 +71,7 @@ const bookAppointment = async (data, requestUser) => {
     }
   }
 
-  // Normalize date to UTC midnight
+  // Store the date at midnight UTC for consistency
   const appointmentDate = new Date(date + 'T00:00:00Z');
   const appointment = new Appointment({
     patient: patient._id,
@@ -109,9 +107,7 @@ const bookAppointment = async (data, requestUser) => {
   return populatedAppointment;
 };
 
-/**
- * Fetch appointments with search, filtering, and server-side pagination & sorting
- */
+// Gets a list of appointments, with search, filters, sorting, and pages
 const getAppointmentsList = async (filters = {}, queryParams = {}) => {
   const query = {};
 
@@ -187,16 +183,14 @@ const getAppointmentsList = async (filters = {}, queryParams = {}) => {
   };
 };
 
-/**
- * Update general details (purpose, notes)
- */
+// Updates an appointment's purpose or notes
 const updateAppointmentDetails = async (id, updateData, requestUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
     throw new AppError('Appointment not found', 404);
   }
 
-  // Doctors can only update consultation notes for their own appointments
+  // Doctors may only edit appointments that belong to them
   if (requestUser.role === 'doctor' && appointment.doctor.toString() !== requestUser._id.toString()) {
     throw new AppError('Not authorized to modify this appointment', 403);
   }
@@ -217,7 +211,7 @@ const updateAppointmentDetails = async (id, updateData, requestUser) => {
     .populate('patient')
     .populate('doctor', 'name email department');
 
-  // Record Audit Log
+  // Save this action to the audit log
   await createAuditLog({
     userId: requestUser._id,
     role: requestUser.role,
@@ -233,16 +227,14 @@ const updateAppointmentDetails = async (id, updateData, requestUser) => {
   return populated;
 };
 
-/**
- * Cancel an appointment
- */
+// Cancels an appointment
 const cancelAppointment = async (id, reason, requestUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
     throw new AppError('Appointment not found', 404);
   }
 
-  // Doctor can cancel only their own
+  // Doctors may only cancel their own appointments
   if (requestUser.role === 'doctor' && appointment.doctor.toString() !== requestUser._id.toString()) {
     throw new AppError('Not authorized to cancel this appointment', 403);
   }
@@ -255,7 +247,7 @@ const cancelAppointment = async (id, reason, requestUser) => {
     .populate('patient')
     .populate('doctor', 'name email department');
 
-  // Record Audit Log
+  // Save this action to the audit log
   await createAuditLog({
     userId: requestUser._id,
     role: requestUser.role,
@@ -268,9 +260,7 @@ const cancelAppointment = async (id, reason, requestUser) => {
   return populated;
 };
 
-/**
- * Mark patient as arrived
- */
+// Marks a patient as arrived for their appointment
 const markPatientAsArrived = async (id, requestUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
@@ -288,7 +278,7 @@ const markPatientAsArrived = async (id, requestUser) => {
     .populate('patient')
     .populate('doctor', 'name email department');
 
-  // Record Audit Log
+  // Save this action to the audit log
   await createAuditLog({
     userId: requestUser._id,
     role: requestUser.role,
@@ -300,16 +290,14 @@ const markPatientAsArrived = async (id, requestUser) => {
   return populated;
 };
 
-/**
- * Mark appointment as completed
- */
+// Marks an appointment as completed
 const markAppointmentCompleted = async (id, notes, requestUser) => {
   const appointment = await Appointment.findById(id);
   if (!appointment) {
     throw new AppError('Appointment not found', 404);
   }
 
-  // Only doctors can complete, and only their own appointments
+  // Only the assigned doctor may mark it complete
   if (requestUser.role !== 'doctor') {
     throw new AppError('Only doctors can complete appointments', 403);
   }
@@ -349,7 +337,7 @@ const deleteAppointmentPermanently = async (id, requestUser) => {
 
   await Appointment.findByIdAndDelete(id);
 
-  // Record Audit Log
+  // Save this action to the audit log
   await createAuditLog({
     userId: requestUser._id,
     role: requestUser.role,

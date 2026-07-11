@@ -9,7 +9,7 @@ const api = axios.create({
   }
 });
 
-// Cache token in memory — avoids synchronous localStorage read on every request
+// Keep a copy of the token in memory so we don't read localStorage every time
 let _cachedToken = localStorage.getItem('accessToken');
 
 export const setApiToken = (token) => {
@@ -22,7 +22,7 @@ export const clearApiToken = () => {
   delete api.defaults.headers.common['Authorization'];
 };
 
-// Seed the default header once on import
+// Set the auth header right away if we already have a token
 if (_cachedToken) {
   api.defaults.headers.common['Authorization'] = `Bearer ${_cachedToken}`;
 }
@@ -91,13 +91,13 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        // Refresh token is expired/invalid: logout user
+        // Refresh failed, so log the user out
         clearApiToken();
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         
-        // Dispatch custom event to let App know to clear state and redirect to login
+        // Tell the app to clear state and go to the login page
         window.dispatchEvent(new Event('auth_session_expired'));
         
         return Promise.reject(refreshError);
@@ -105,7 +105,7 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 423) {
-      // Account is locked behind a mandatory temporary-password change.
+      // Account needs a temporary password change before continuing
       window.dispatchEvent(new Event('password_change_required'));
     }
 

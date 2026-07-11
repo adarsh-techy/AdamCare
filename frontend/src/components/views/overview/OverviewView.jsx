@@ -161,7 +161,7 @@ const Overview = ({ user, setActiveTab }) => {
       </p>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 mb-8">
         {/* Total */}
         <div className="bg-sky-50/50 border border-sky-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-150">
           <p className="text-xs font-bold text-sky-800 uppercase tracking-wider">Total Appointments</p>
@@ -196,7 +196,7 @@ const Overview = ({ user, setActiveTab }) => {
       </div>
 
       {/* Main Splits */}
-      <div className="grid grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 xl:gap-8 items-start">
         {/* Left Side: Schedule Progress and Hourly Chart */}
         <div className="flex flex-col gap-6">
           {user.role === 'doctor' ? (
@@ -300,7 +300,7 @@ const Overview = ({ user, setActiveTab }) => {
               {chartSlots.map((c, idx) => {
                 const barHeightPx = Math.max((c.count / maxChartCount) * CHART_BAR_MAX_PX, 10);
                 return (
-                  <div key={idx} className="flex flex-col items-center gap-3 w-20 group">
+                  <div key={idx} className="flex flex-col items-center gap-3 w-14 sm:w-20 group">
                     <div className="w-full flex justify-center relative">
                       {/* Tooltip on hover */}
                       <span className="absolute -top-7 scale-0 group-hover:scale-100 bg-slate-900 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow transition-all duration-100">

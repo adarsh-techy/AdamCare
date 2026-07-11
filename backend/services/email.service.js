@@ -1,33 +1,21 @@
-// Handles all outbound transactional email for the app (currently just the
-// "Forgot Password" reset link). Kept as its own service file — separate
-// from auth.controller.js — so the SMTP/transport details live in one place
-// and any future email (e.g. appointment reminders) can reuse getTransporter()
-// instead of re-configuring nodemailer from scratch.
+// Sends emails for the app, like the password reset link
 
 const nodemailer = require('nodemailer');
 
-// Lazily created and cached: nodemailer's transporter holds an open
-// connection pool, so we build it once on first use and reuse it for every
-// email afterward, rather than reconnecting to the SMTP server every call.
+// Build the email connection once and reuse it instead of reconnecting every time
 let transporter;
 
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      // Explicit host/port (rather than nodemailer's `service: 'gmail'`
-      // shorthand) so this works with any SMTP provider, not just Gmail —
-      // swap EMAIL_HOST/EMAIL_PORT in .env to point at a different provider
-      // later without touching this file.
+      // Use explicit host/port so this works with any email provider, not just Gmail
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT) || 587,
-      // Port 587 uses STARTTLS (secure: false, upgraded after connecting);
-      // port 465 would need secure: true instead. If you ever switch to
-      // port 465, flip this too.
+      // Port 465 needs secure true, other ports like 587 use false
       secure: Number(process.env.EMAIL_PORT) === 465,
       auth: {
         user: process.env.EMAIL_USER,
-        // Gmail requires an "App Password" here, NOT the account's normal
-        // login password — see .env.example for how to generate one.
+        // Gmail needs an App Password here, not your regular login password
         pass: process.env.EMAIL_PASS
       }
     });
@@ -35,17 +23,7 @@ const getTransporter = () => {
   return transporter;
 };
 
-/**
- * Send a password-reset email containing the raw (unhashed) reset link.
- *
- * Why this throws instead of swallowing errors itself: the caller
- * (forgotPassword in auth.controller.js) must ALWAYS return the same
- * generic "if that email exists..." response to the client no matter what
- * happens here — otherwise a failed/successful send would leak whether the
- * email address is actually registered. So this function's only job is to
- * attempt the send; the controller decides what (if anything) to tell the
- * user, and logs the real error for us to debug server-side.
- */
+// Sends the password reset email; errors are thrown so the caller can hide them from the user
 const sendPasswordResetEmail = async (to, resetLink) => {
   await getTransporter().sendMail({
     from: `"Adam Care EMR" <${process.env.EMAIL_USER}>`,

@@ -91,8 +91,7 @@ const SuperAdminScheduleView = () => {
 
   // Cache default schedule per doctor so date changes don't re-fetch default
   const defaultCacheRef = useRef({});
-  // Cache override lookups per `${doctorId}::${date}` so revisiting a
-  // doctor/date combo renders instantly with no spinner or network call.
+  // Cache override lookups so revisiting a doctor/date shows instantly.
   const overrideCacheRef = useRef({});
 
   const applyResolved = (defData, overrideEntry, resolvedWorkingDays) => {
@@ -137,17 +136,13 @@ const SuperAdminScheduleView = () => {
     fetchDepartments();
   }, [fetchDoctors, fetchDepartments]);
 
-  // Manage Clinic Departments stays mounted in another tab and dispatches
-  // this after any create/edit/block/delete, so this view's department data
-  // stays live without a full page refresh.
+  // Refresh the department list when departments change elsewhere in the app.
   useEffect(() => {
     window.addEventListener('departments_changed', fetchDepartments);
     return () => window.removeEventListener('departments_changed', fetchDepartments);
   }, [fetchDepartments]);
 
-  // /departments only returns active (non-blocked) departments, so this
-  // excludes doctors whose department has been blocked in Manage Clinic
-  // Departments — a blocked department's doctors shouldn't be schedulable.
+  // Only show doctors whose department is still active (not blocked).
   const activeDoctors = useMemo(() => {
     const activeDeptNames = new Set(departments.map(d => d.name));
     return doctors.filter(d => activeDeptNames.has(d.department));
@@ -175,9 +170,7 @@ const SuperAdminScheduleView = () => {
     const cachedDefault = defaultCacheRef.current[selectedDoc];
     const cachedOverride = overrideCacheRef.current[cacheKey];
 
-    // Both pieces already cached (e.g. background prefetch, or revisiting a
-    // doctor/date already seen this session) — render instantly, no spinner,
-    // no network round trip at all.
+    // If both are already cached, show them right away without a network call.
     if (cachedDefault && cachedOverride) {
       const resolvedWorkingDays = (cachedDefault.workingDays && cachedDefault.workingDays.length > 0)
         ? cachedDefault.workingDays
@@ -632,7 +625,7 @@ const SuperAdminScheduleView = () => {
             {timeBlocks.map((block) => (
               <div
                 key={block.id}
-                className={`flex items-center gap-4 px-5 py-4 rounded-2xl border transition-all duration-200 ${
+                className={`flex flex-wrap items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 rounded-2xl border transition-all duration-200 ${
                   block.enabled
                     ? block.type === 'session'
                       ? 'bg-emerald-50/60 border-emerald-200/80'
@@ -646,7 +639,7 @@ const SuperAdminScheduleView = () => {
                     : 'bg-slate-300'
                 }`} />
 
-                <div className="flex-grow min-w-0">
+                <div className="w-full sm:w-auto sm:flex-1 min-w-0">
                   <input
                     type="text"
                     value={block.name}

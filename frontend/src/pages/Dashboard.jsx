@@ -17,10 +17,11 @@ import {
   Layers,
   Search,
   RefreshCw,
-  Clock
+  Clock,
+  Menu
 } from 'lucide-react';
 
-// Isolated clock component — state updates here never re-render Dashboard or its view children
+// Clock in the navbar, kept separate so it doesn't re-render the whole page
 const NavbarClock = memo(() => {
   const [liveTime, setLiveTime] = useState(new Date());
   const [countdown, setCountdown] = useState(30);
@@ -39,9 +40,7 @@ const NavbarClock = memo(() => {
 
   useEffect(() => {
     const t = setInterval(() => {
-      // Pure decrement only — side effects (dispatching the sync event,
-      // resetting state) must not live inside a setState updater, since
-      // React can invoke it mid-render and that update other components.
+      // Just count down by one each second
       setCountdown((prev) => Math.max(prev - 1, 0));
     }, 1000);
     return () => clearInterval(t);
@@ -55,7 +54,7 @@ const NavbarClock = memo(() => {
 
   const dateStr = useMemo(
     () => liveTime.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
-    // only recompute when the date actually changes (once per day)
+    // Recompute only when the day changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [liveTime.toDateString()]
   );
@@ -63,8 +62,8 @@ const NavbarClock = memo(() => {
   const timeStr = liveTime.toLocaleTimeString('default', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2 lg:gap-4">
+      <div className="hidden lg:flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <Clock size={15} className="text-primary" />
         </div>
@@ -73,10 +72,10 @@ const NavbarClock = memo(() => {
         <span className="text-sm font-bold text-primary tabular-nums">{timeStr}</span>
       </div>
 
-      <div className="w-px h-8 bg-slate-200 shrink-0" />
+      <div className="hidden lg:block w-px h-8 bg-slate-200 shrink-0" />
 
-      <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
-        <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 px-2 py-1.5 lg:px-4 lg:py-2 rounded-xl">
+        <div className="hidden lg:flex lg:flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auto Sync</span>
             <span className="text-slate-300">·</span>
@@ -109,16 +108,10 @@ import PatientRecordsView from '../components/views/patients/PatientRecordsView'
 import DoctorWorklistView from '../components/views/consultation/DoctorWorklistView';
 import MyProfileView from '../components/views/profile/MyProfileView';
 
-// Single source of truth for sidebar nav — order here IS the sidebar order.
-// Add/remove/reorder items by editing this array only; grouped by section
-// (Configuration → Operations → Reports) so new items have an obvious home.
+// List of sidebar links, in the order they should appear
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', icon: LayoutGrid, roles: ['super_admin', 'receptionist', 'doctor'] },
-  // Doctors/receptionists reach this from the sidebar like any other tab.
-  // Super admin instead reaches it via the navbar profile icon, so it's
-  // hidden from their sidebar specifically — hideFromSidebarForRoles lists
-  // which roles should NOT see it listed, while it stays a valid tab for
-  // everyone (role check + page title lookup below both key off this array).
+  // Super admin opens their profile from the navbar icon, so hide it from their sidebar
   { id: 'my_profile', label: 'My Profile', icon: User, roles: ['super_admin', 'receptionist', 'doctor'], hideFromSidebarForRoles: ['super_admin'] },
 
   { id: 'departments', label: 'Manage Departments', icon: Layers, roles: ['super_admin'], section: 'Configuration' },
@@ -142,23 +135,17 @@ const Dashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const socket = useSocket();
 
-  // The active tab now lives directly in the URL (/:tab, e.g. /overview,
-  // /doctors — Dashboard is not a route prefix) instead of local state, so a
-  // hard refresh naturally re-reads it from the address bar, and each
-  // section is its own bookmarkable/shareable top-level URL.
+  // The active tab comes from the URL, so refreshing the page keeps it
   const activeTab = tabParam || 'overview';
 
-  // setActiveTab keeps its old name/signature (navigate to a tab) so every
-  // existing call site — nav clicks, OverviewView's quick-jump buttons —
-  // keeps working unchanged.
+  // Switch tabs by changing the URL
   const setActiveTab = useCallback((tabId) => {
     navigate(`/${tabId}`);
   }, [navigate]);
 
   const [realtimeNotification, setRealtimeNotification] = useState(null);
 
-  // Redirect away from a URL tab that doesn't exist or isn't allowed for
-  // this user's role (e.g. typed manually, stale bookmark, or role changed).
+  // Send the user back to overview if their current tab isn't allowed
   useEffect(() => {
     if (!user?.role || !tabParam) return;
     const isValidTab = NAV_ITEMS.some((item) => item.id === tabParam && item.roles.includes(user.role));
@@ -168,16 +155,16 @@ const Dashboard = () => {
   }, [user?.role, tabParam, navigate]);
 
 
-  // Monitor socket connections for changes to appointments
+  // Listen for live appointment updates from the server
   useEffect(() => {
     if (!socket) return;
 
     const handleAppointmentChange = (changeData) => {
-      // Broadcast simple event inside frontend to trigger components re-fetch automatically
+      // Tell other components to refresh their appointment data
       const customEvent = new Event('appointment_changed_ws');
       window.dispatchEvent(customEvent);
 
-      // Trigger dynamic dashboard toast notification message for relevant operations
+      // Build the popup message for this appointment change
       const appt = changeData.data || {};
       let message = `Appointment slot ${appt.slot} status updated to: ${appt.status}`;
       if (changeData.type === 'created') {
@@ -191,7 +178,7 @@ const Dashboard = () => {
         type: appt.status
       });
 
-      // Dismiss the toast automatically after 6 seconds
+      // Hide the popup after a few seconds
       setTimeout(() => {
         setRealtimeNotification(null);
       }, 6000);
@@ -200,13 +187,13 @@ const Dashboard = () => {
     socket.on('appointment_change', handleAppointmentChange);
 
     const handleScheduleChange = () => {
-      // Broadcast inside frontend so booking view refreshes slots automatically
+      // Tell the booking view to refresh its available slots
       window.dispatchEvent(new Event('schedule_changed_ws'));
     };
     socket.on('schedule_change', handleScheduleChange);
 
     const handleStaffChange = () => {
-      // Lets the notification bell refresh its pending-approvals count live
+      // Tell the notification bell to refresh its count
       window.dispatchEvent(new Event('staff_changed_ws'));
     };
     socket.on('staff_change', handleStaffChange);
@@ -220,6 +207,7 @@ const Dashboard = () => {
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -234,8 +222,8 @@ const Dashboard = () => {
   return (
     <div className="h-screen w-screen flex bg-bg-main overflow-hidden font-sans">
       {realtimeNotification && (
-        <div 
-          className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] p-[12px_24px] rounded-xl text-white flex items-center gap-4 shadow-2xl animate-[fadeIn_0.25s_forwards]"
+        <div
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-md p-[12px_16px] sm:p-[12px_24px] rounded-xl text-white flex items-center gap-4 shadow-2xl animate-[fadeIn_0.25s_forwards]"
           style={{
             backgroundColor: realtimeNotification.type === 'cancelled' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)'
           }}
@@ -248,8 +236,20 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Left Sidebar */}
-      <aside className="w-[280px] bg-[#0d695d] flex flex-col h-screen p-5 select-none shrink-0">
+      {/* Sidebar backdrop — mobile/tablet only, dismisses the drawer */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/40 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Left Sidebar — off-canvas drawer below lg, permanent from lg up */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] bg-[#0d695d] flex flex-col h-screen p-5 select-none shrink-0 transform transition-transform duration-200 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Logo */}
           <div className="flex items-center gap-2.5 pl-2 pb-3.5 mb-3.5 -mx-5 px-5 border-b border-white/10 shrink-0">
@@ -281,7 +281,7 @@ const Dashboard = () => {
                         ? 'bg-[#0a5249] text-white'
                         : 'bg-transparent text-teal-100/70 hover:text-white hover:bg-white/5'
                     }`}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
                   >
                     <Icon size={16} className={isActive ? 'text-teal-300' : 'text-teal-200/60'} />
                     <span>{item.label}</span>
@@ -319,12 +319,20 @@ const Dashboard = () => {
       {/* Right Content Area */}
       <div className="flex-grow flex flex-col h-screen overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-[82px] bg-white border-b border-slate-200/60 shadow-sm px-8 flex items-center justify-between shrink-0 relative z-10">
+        <header className="h-[82px] bg-white border-b border-slate-200/60 shadow-sm px-4 md:px-8 flex items-center justify-between shrink-0 relative z-10">
 
-          {/* Left — Page Title */}
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-800 leading-none">
+          {/* Left — Hamburger (mobile/tablet) + Page Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((o) => !o)}
+              aria-label="Toggle navigation"
+              className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-100 text-slate-600 shrink-0"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-slate-800 leading-none truncate">
                 {NAV_ITEMS.find(item => item.id === activeTab)?.title
                   || NAV_ITEMS.find(item => item.id === activeTab)?.label
                   || 'Dashboard'}
@@ -333,11 +341,11 @@ const Dashboard = () => {
           </div>
 
           {/* Right — Clock + Auto Sync, then Notifications + Profile (super admin only) at the very end */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <NavbarClock />
             {user?.role === 'super_admin' && (
               <>
-                <div className="w-px h-8 bg-slate-200 shrink-0" />
+                <div className="hidden lg:block w-px h-8 bg-slate-200 shrink-0" />
                 <div className="flex items-center gap-2">
                   <NotificationBell />
                   <button
@@ -359,8 +367,8 @@ const Dashboard = () => {
         </header>
 
         {/* Scrollable Workarea */}
-        <main className="flex-grow p-8 overflow-y-auto bg-[#f4f6f8]">
-          <div className="max-w-[1300px] mx-auto bg-white border border-slate-200/60 shadow-md p-8 rounded-2xl min-h-[500px]">
+        <main className="flex-grow p-4 md:p-8 overflow-y-auto bg-[#f4f6f8]">
+          <div className="max-w-[1300px] mx-auto bg-white border border-slate-200/60 shadow-md p-4 md:p-8 rounded-2xl min-h-[500px]">
             {/* Keep every panel mounted — CSS hidden prevents remount/refetch on every tab switch */}
             <div className={activeTab === 'overview' ? '' : 'hidden'}><OverviewView user={user} setActiveTab={setActiveTab} /></div>
             <div className={activeTab === 'my_profile' ? '' : 'hidden'}><MyProfileView /></div>

@@ -18,7 +18,7 @@ router.use(protect);
 
 router.get('/', getDoctors);
 
-// Override routes must come before /:id/schedule to avoid ambiguity
+// These override routes need to be listed first so they aren't confused with the schedule route
 router.get('/:id/schedule/override', getScheduleOverride);
 router.put('/:id/schedule/override', authorize('super_admin'), upsertScheduleOverride);
 router.delete('/:id/schedule/override', authorize('super_admin'), deleteScheduleOverride);
