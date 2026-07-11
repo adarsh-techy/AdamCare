@@ -400,3 +400,5 @@ Runs on `http://localhost:5173`. Open this URL in a browser and log in.
 8. **Multi-clinic/tenant support**, if the product scope expands beyond a single clinic.
 9. **Proper avatar upload pipeline** (object storage + resizing) instead of raw client-provided strings.
 10. **Configurable frontend API base URL** via a build-time environment variable, to simplify multi-environment deployment.
+11. **WhatsApp integration** — implement messaging for appointment bookings, reminders, and patient communication.
+
