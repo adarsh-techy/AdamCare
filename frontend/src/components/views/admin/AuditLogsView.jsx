@@ -102,7 +102,6 @@ const AuditLogsView = () => {
                 <th className="pb-3 px-4">Role</th>
                 <th className="pb-3 px-4">Action</th>
                 <th className="pb-3 px-4">Modified Entity</th>
-                <th className="pb-3 px-4">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -113,9 +112,6 @@ const AuditLogsView = () => {
                   <td className="px-4"><span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary">{log.role}</span></td>
                   <td className="px-4"><span className="font-bold text-xs text-secondary">{log.action}</span></td>
                   <td className="px-4 text-sm text-text-primary">{log.entity}</td>
-                  <td className="px-4 text-xs font-mono text-text-muted max-w-[320px] truncate" title={JSON.stringify(log.details || {})}>
-                    {JSON.stringify(log.details || {})}
-                  </td>
                 </tr>
               ))}
             </tbody>
