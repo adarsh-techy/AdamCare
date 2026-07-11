@@ -17,7 +17,7 @@ const { validate } = require('../middlewares/validation.middleware');
 
 const router = express.Router();
 
-router.use(protect); // All routes require authentication
+router.use(protect); // Every route below this needs the user to be logged in
 
 router.get('/', getAppointments);
 router.get('/patients/search', authorize('super_admin', 'receptionist'), searchPatients);

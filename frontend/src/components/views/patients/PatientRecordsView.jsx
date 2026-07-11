@@ -67,10 +67,7 @@ const SearchPatientsView = () => {
     }
   }, []);
 
-  // Hook into live Socket.IO update broadcasts — without this, a delete (or
-  // any other change) made elsewhere (e.g. Global Appointment Registry)
-  // never reaches this view: the patient list's visit counts and an
-  // already-open history modal would keep showing stale data indefinitely.
+  // Refresh the list and open history when appointments change elsewhere.
   useEffect(() => {
     const handleWS = () => {
       handleSearch();

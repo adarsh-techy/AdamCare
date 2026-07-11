@@ -236,7 +236,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Sidebar backdrop — mobile/tablet only, dismisses the drawer */}
+      {/* Dark overlay behind the mobile sidebar, tap to close it */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-950/40 z-30 lg:hidden"
@@ -244,14 +244,14 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Left Sidebar — off-canvas drawer below lg, permanent from lg up */}
+      {/* Sidebar with navigation links */}
       <aside
         className={`fixed lg:static inset-y-0 left-0 z-40 w-[280px] bg-[#0d695d] flex flex-col h-screen p-5 select-none shrink-0 transform transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col flex-1 min-h-0">
-          {/* Logo */}
+          {/* App logo and name */}
           <div className="flex items-center gap-2.5 pl-2 pb-3.5 mb-3.5 -mx-5 px-5 border-b border-white/10 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 shadow-md">
               <Stethoscope size={18} className="text-teal-300 animate-pulse" />
@@ -292,7 +292,7 @@ const Dashboard = () => {
           </nav>
         </div>
 
-        {/* Profile Card / Exit block */}
+        {/* User info and logout button */}
         <div className="bg-[#0a5249] border border-teal-800/10 rounded-2xl p-3 flex items-center justify-between shadow-sm shrink-0 mt-3">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-xl bg-teal-600/30 flex items-center justify-center shrink-0 border border-teal-500/20">
@@ -316,12 +316,12 @@ const Dashboard = () => {
         </div>
       </aside>
 
-      {/* Right Content Area */}
+      {/* Main content area next to the sidebar */}
       <div className="flex-grow flex flex-col h-screen overflow-hidden">
-        {/* Top Navbar */}
+        {/* Top bar with page title and clock */}
         <header className="h-[82px] bg-white border-b border-slate-200/60 shadow-sm px-4 md:px-8 flex items-center justify-between shrink-0 relative z-10">
 
-          {/* Left — Hamburger (mobile/tablet) + Page Title */}
+          {/* Menu button and current page title */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -340,7 +340,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Right — Clock + Auto Sync, then Notifications + Profile (super admin only) at the very end */}
+          {/* Clock, notifications, and profile icon */}
           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <NavbarClock />
             {user?.role === 'super_admin' && (
@@ -366,10 +366,10 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* Scrollable Workarea */}
+        {/* Scrollable area showing the active tab's content */}
         <main className="flex-grow p-4 md:p-8 overflow-y-auto bg-[#f4f6f8]">
           <div className="max-w-[1300px] mx-auto bg-white border border-slate-200/60 shadow-md p-4 md:p-8 rounded-2xl min-h-[500px]">
-            {/* Keep every panel mounted — CSS hidden prevents remount/refetch on every tab switch */}
+            {/* Keep all views loaded, just hide the ones not active */}
             <div className={activeTab === 'overview' ? '' : 'hidden'}><OverviewView user={user} setActiveTab={setActiveTab} /></div>
             <div className={activeTab === 'my_profile' ? '' : 'hidden'}><MyProfileView /></div>
 
@@ -399,7 +399,7 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* Logout Confirmation Modal */}
+      {/* Popup asking the user to confirm logout */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-slate-950/40 flex items-center justify-center z-[99999] p-4 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
           {loggingOut ? (

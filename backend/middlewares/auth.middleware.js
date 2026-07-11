@@ -5,7 +5,7 @@ const AppError = require('../utils/appError');
 const protect = async (req, res, next) => {
   let token;
 
-  // Check for token in Authorization header
+  // Look for the token in the Authorization header
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
@@ -18,18 +18,16 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify token
+    // Check that the token is valid
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from token and attach to request
+    // Load the user this token belongs to
     const user = await User.findById(decoded.id);
     if (!user) {
       return next(new AppError('User belonging to this token no longer exists', 401));
     }
 
-    // A user still on an admin-issued temporary password can only change it,
-    // log out, or refresh their token — every other route is locked until
-    // they set their own password.
+    // Block every route except change-password/logout/refresh until the temp password is changed
     const allowedWhilePendingChange = [
       '/api/v1/auth/change-temp-password',
       '/api/v1/auth/logout',

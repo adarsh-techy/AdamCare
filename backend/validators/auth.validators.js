@@ -23,23 +23,18 @@ const changeTempPasswordValidator = [
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
 ];
 
-// Every field is optional here — only validate the ones that were actually sent.
+// All fields are optional here; only check the ones that were sent
 const updateMeValidator = [
   body('newPassword').optional().isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
   body('name').optional().notEmpty().withMessage('Name cannot be empty')
 ];
 
-// Just checks the email LOOKS valid (format only) — whether it's actually
-// registered is deliberately not checked here or anywhere client-visible;
-// see forgotPassword's genericResponse() in auth.controller.js.
+// Only checks the email format looks valid, not whether it's registered
 const forgotPasswordValidator = [
   body('email').isEmail().withMessage('Please provide a valid email')
 ];
 
-// The reset token itself comes from the URL (:token param), not the body,
-// so it's not validated here — resetPassword in auth.controller.js checks
-// it directly against the database instead (a malformed/unknown token just
-// won't match any stored hash).
+// The reset token comes from the URL, so it's checked elsewhere, not here
 const resetPasswordValidator = [
   body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
 ];

@@ -61,23 +61,13 @@ const UserSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  // --- "Forgot Password" reset flow (see auth.controller.js forgotPassword
-  // / resetPassword, and backend/services/email.service.js) ---
-  // We never store the raw token a user clicks in their email — only its
-  // SHA-256 hash. That way, even someone with direct database access can't
-  // use a stolen resetPasswordToken value to reset the account (they'd need
-  // the original unhashed token, which only ever existed in the email link).
-  // select: false keeps these out of normal queries/API responses, same
-  // pattern as `password` above — a controller must explicitly
-  // .select('+resetPasswordToken +resetPasswordExpires') to read them.
+  // Used for the "forgot password" flow; stores only a hashed token, never the raw one
   resetPasswordToken: {
     type: String,
     select: false,
     default: undefined
   },
-  // Reset links expire 30 minutes after being requested (set in
-  // auth.controller.js's forgotPassword). A token past this time is treated
-  // as invalid even if it otherwise matches.
+  // When the reset link expires (30 minutes after it was requested)
   resetPasswordExpires: {
     type: Date,
     select: false,
@@ -87,9 +77,7 @@ const UserSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Runs before every save — but only actually re-hashes the password when it
-// was changed on this save (isModified check), so saving unrelated fields
-// (e.g. just `name` or `status`) doesn't re-hash an already-hashed password.
+// Hashes the password before saving, but only if it was actually changed
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
@@ -99,10 +87,7 @@ UserSchema.pre('save', async function(next) {
   next();
 });
 
-// Compares a plaintext password (e.g. from a login form) against this
-// user's stored bcrypt hash. `this.password` must have been explicitly
-// selected first (see the `select: false` above), since it's excluded from
-// queries by default.
+// Checks a plain-text password against this user's stored hashed password
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

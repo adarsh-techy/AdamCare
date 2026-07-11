@@ -15,7 +15,7 @@ const appointmentValidator = [
   body('purpose').notEmpty().withMessage('Purpose is required'),
   body('patientType').isIn(['existing', 'new']).withMessage('Patient type must be either existing or new'),
 
-  // Conditionally validate patient fields
+  // Only require these patient fields depending on patient type
   body('patientId').custom((value, { req }) => {
     if (req.body.patientType === 'existing' && !value) {
       throw new Error('Patient ID is required for existing patients');

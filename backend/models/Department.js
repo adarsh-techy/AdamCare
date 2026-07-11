@@ -9,7 +9,7 @@ const DepartmentSchema = new mongoose.Schema({
   },
   workingDays: {
     type: [Number],
-    default: [1, 2, 3, 4, 5] // Monday to Friday by default
+    default: [1, 2, 3, 4, 5] // Default: Monday through Friday
   },
   isActive: {
     type: Boolean,

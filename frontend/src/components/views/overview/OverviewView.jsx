@@ -14,8 +14,7 @@ const Overview = ({ user, setActiveTab }) => {
 
   const fetchDateData = useCallback(async (dateStr) => {
     try {
-      // 1. Fetch appointments for the given date (backend auto-scopes to
-      // only this doctor's own appointments when the requester is a doctor)
+      // Get appointments for the selected date.
       const appRes = await api.get('/appointments', {
         params: {
           startDate: dateStr,
@@ -25,8 +24,7 @@ const Overview = ({ user, setActiveTab }) => {
       });
       setAppointments(appRes.data.data);
 
-      // 2. Fetch doctors to map their profiles — only needed for the
-      // clinic-wide "Doctor Workloads" widget (admin/receptionist view)
+      // Only admins/receptionists need the doctor list for the workload widget.
       if (user.role !== 'doctor') {
         const docRes = await api.get('/doctors');
         setDoctorsList(docRes.data.data);
@@ -64,7 +62,7 @@ const Overview = ({ user, setActiveTab }) => {
     };
   }).filter(d => d.count > 0 || user.role === 'super_admin');
 
-  // Chart distribution (Morning: 09:00-12:00, Midday: 12:00-14:00, Afternoon: 14:00-17:00, Evening: 17:00-20:00)
+  // Split the day into time slots for the chart.
   const getSlotHour = (slotStr) => {
     if (!slotStr) return 9;
     const match = slotStr.match(/^(\d+):/);
@@ -78,10 +76,7 @@ const Overview = ({ user, setActiveTab }) => {
     { label: '5 PM - 8 PM', count: appointments.filter(a => { const h = getSlotHour(a.slot); return h >= 17 && h < 20; }).length },
   ];
   const maxChartCount = Math.max(...chartSlots.map(c => c.count), 1);
-  // Bar height must be a fixed pixel value, not a percentage — the column
-  // wrapper below is an auto-height flex item (parent row uses items-end),
-  // so a percentage height has no defined ancestor to resolve against and
-  // silently collapses to 0.
+  // Bars need a fixed pixel height, a percentage would not work here.
   const CHART_BAR_MAX_PX = 150;
 
   // Calendar Dynamic calculations

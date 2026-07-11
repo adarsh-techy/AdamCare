@@ -34,8 +34,7 @@ const generateSlotsForDoctor = async (doctorId, dateStr) => {
   // A one-off override for this date beats the normal schedule if it exists
   const override = await ScheduleOverride.findOne({ doctor: doctorId, date: dateStr });
 
-  // An inactive department closes the clinic entirely for that department,
-  // regardless of any doctor-level override or default schedule.
+  // If the department is closed, no slots are available no matter what
   let dept = null;
   if (doctor.department) {
     dept = await Department.findOne({ name: doctor.department });
@@ -54,13 +53,7 @@ const generateSlotsForDoctor = async (doctorId, dateStr) => {
   }
 
   if (!override) {
-    // Which days does this doctor recurringly work? The doctor's own
-    // configured working days (set in Manage Doctor Schedules) take priority
-    // over the department's default working days, which take priority over
-    // the hardcoded Mon-Fri fallback. Mongoose defaults an unset array field
-    // to [] (not undefined), so an empty array must be treated as "not set"
-    // rather than "works zero days" — otherwise every schedule without an
-    // explicit workingDays value would be permanently unavailable.
+    // Use the doctor's set working days, or the department's, or default to Mon-Fri
     const workingDays = (schedule?.workingDays && schedule.workingDays.length > 0)
       ? schedule.workingDays
       : (dept?.workingDays || [1, 2, 3, 4, 5]);
@@ -150,13 +143,13 @@ const generateSlotsForDoctor = async (doctorId, dateStr) => {
     }
   }
 
-  // Deduplicate slots by time to prevent duplicate slots from showing when sessions overlap
+  // Remove duplicate slot times caused by overlapping sessions
   const uniqueSlotsMap = new Map();
   for (const slot of allSlots) {
     if (!uniqueSlotsMap.has(slot.time)) {
       uniqueSlotsMap.set(slot.time, slot);
     } else {
-      // Prioritize the available/valid slot
+      // Keep the available slot if there's a duplicate
       const existing = uniqueSlotsMap.get(slot.time);
       if (slot.isAvailable && !existing.isAvailable) {
         uniqueSlotsMap.set(slot.time, slot);

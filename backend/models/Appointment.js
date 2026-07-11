@@ -45,13 +45,13 @@ const AppointmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Compound partial unique index — prevents double booking while allowing re-booking of cancelled slots.
+// Stops double booking but still allows re-booking a cancelled slot
 AppointmentSchema.index(
   { doctor: 1, date: 1, slot: 1 },
   { unique: true, partialFilterExpression: { status: { $ne: 'cancelled' } } }
 );
 
-// Supporting indexes for common query patterns
+// Extra indexes to speed up common searches
 AppointmentSchema.index({ date: 1 });
 AppointmentSchema.index({ status: 1 });
 AppointmentSchema.index({ department: 1 });

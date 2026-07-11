@@ -37,10 +37,7 @@ const ScheduleSchema = new mongoose.Schema({
     min: [5, 'Slot duration must be at least 5 minutes'],
     max: [120, 'Slot duration cannot exceed 120 minutes']
   },
-  // Days of week (0=Sun..6=Sat) this doctor is recurringly available. When
-  // unset, availability falls back to the doctor's department working days.
-  // default: undefined stops Mongoose auto-initializing this to [] — an
-  // empty array must stay distinguishable from "not configured".
+  // Which days this doctor works; falls back to the department's working days if not set
   workingDays: {
     type: [Number],
     default: undefined

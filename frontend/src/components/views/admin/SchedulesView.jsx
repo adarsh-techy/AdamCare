@@ -187,8 +187,7 @@ const SuperAdminScheduleView = () => {
       try {
         const needsDefault = !cachedDefault;
 
-        // Fetch whatever's missing in parallel instead of one after another
-        // — this was the main source of the visible delay when picking a doctor.
+        // Fetch the missing pieces at the same time to save loading time.
         const [defResult, ovResult] = await Promise.allSettled([
           needsDefault
             ? api.get(`/doctors/${selectedDoc}/schedule`, { signal: controller.signal })
@@ -246,8 +245,7 @@ const SuperAdminScheduleView = () => {
       const newEnabled = !target.enabled;
       return prev.map(b => {
         if (b.id === id) return { ...b, enabled: newEnabled };
-        // Blocking the Evening Session also blocks the Lunch Break (no
-        // evening to break before), and re-enabling Evening restores it.
+        // Turning off the Evening Session also turns off the Lunch Break.
         if (id === 'evening' && b.id === 'lunch') return { ...b, enabled: newEnabled };
         return b;
       });
@@ -259,9 +257,7 @@ const SuperAdminScheduleView = () => {
     return { sessions, breakTimings, slotDuration: parseInt(slotDuration, 10) };
   };
 
-  // Prevents saving a schedule where one block's time range overrides/eats
-  // into another's — each enabled block must end after it starts, and no
-  // two enabled blocks (session or break) may overlap.
+  // Check that no enabled blocks have bad or overlapping times.
   const validateBlocks = () => {
     const enabled = timeBlocks.filter(b => b.enabled);
     for (const b of enabled) {
@@ -370,8 +366,7 @@ const SuperAdminScheduleView = () => {
     JSON.stringify(workingDays) !== JSON.stringify(savedSnapshot.workingDays)
   );
 
-  // Live validation as blocks are edited, not just on submit — lets the
-  // Save buttons disable immediately when times overlap or are inverted.
+  // Re-check for errors every time the blocks change, not just on save.
   const blockValidationErr = useMemo(() => validateBlocks(), [timeBlocks]);
 
   const dayOfWeek = useMemo(() => {
@@ -727,10 +722,7 @@ const SuperAdminScheduleView = () => {
                     : `Save for ${formattedDate}`}
                 </button>
 
-                {/* Update default (affects all dates without an exception) —
-                    hidden while viewing an exception date, since that date's
-                    (possibly partial) blocks must never silently overwrite
-                    the doctor's real default. Reset to Default first. */}
+                {/* Update the default schedule, hidden when viewing an exception date */}
                 {!hasOverride && (
                   <button
                     type="button"

@@ -12,11 +12,7 @@ const init = (socketIoInstance) => {
   });
 };
 
-/**
- * Emit real-time appointment updates to all connected clients
- * @param {string} type - 'created', 'updated', 'cancelled', 'arrived', 'completed'
- * @param {object} appointmentData - The updated appointment document
- */
+// Tells all connected clients about an appointment change
 const notifyAppointmentChange = (type, appointmentData) => {
   if (io) {
     io.emit('appointment_change', {
@@ -29,11 +25,7 @@ const notifyAppointmentChange = (type, appointmentData) => {
   }
 };
 
-/**
- * Emit real-time schedule updates to all connected clients
- * @param {string} type - 'default_updated', 'override_set', 'override_deleted'
- * @param {string} doctorId - The doctor whose schedule changed
- */
+// Tells all connected clients about a schedule change
 const notifyScheduleChange = (type, doctorId) => {
   if (io) {
     io.emit('schedule_change', { type, doctorId });
@@ -43,13 +35,7 @@ const notifyScheduleChange = (type, doctorId) => {
   }
 };
 
-/**
- * Emit real-time staff/qualification updates — powers the super admin's
- * notification bell so a fresh request (or an approve/reject elsewhere)
- * shows up without waiting for the next poll.
- * @param {string} type - 'qualification_requested', 'qualification_approved', 'qualification_rejected'
- * @param {string} staffId - The affected staff member's ID
- */
+// Tells all connected clients about a staff or qualification change
 const notifyStaffChange = (type, staffId) => {
   if (io) {
     io.emit('staff_change', { type, staffId });

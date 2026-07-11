@@ -6,22 +6,22 @@ const errorHandler = (err, req, res, next) => {
   error.statusCode = err.statusCode || 500;
   error.status = err.status || 'error';
 
-  // Log for development
+  // Print the error details when running in development
   if (process.env.NODE_ENV === 'development') {
     console.error(err);
   }
 
-  // Mongoose Bad ObjectId (CastError)
+  // Handle an invalid MongoDB ID
   if (err.name === 'CastError') {
     const message = `Resource not found with id of ${err.value}`;
     error = new AppError(message, 404);
   }
 
-  // Mongoose Duplicate Key Error
+  // Handle a duplicate key error from the database
   if (err.code === 11000) {
     let message = 'Duplicate field value entered';
     
-    // Check if duplicate key is for the unique doctor-date-slot index
+    // Give a clearer message if it's a duplicate appointment slot
     if (err.keyPattern && err.keyPattern.doctor && err.keyPattern.date && err.keyPattern.slot) {
       message = 'This slot has already been booked. Please select another slot.';
     } else {
@@ -29,16 +29,16 @@ const errorHandler = (err, req, res, next) => {
       message = `Duplicate field: ${keys.join(', ')}. Please use another value.`;
     }
     
-    error = new AppError(message, 409); // 409 Conflict
+    error = new AppError(message, 409); // 409 means a conflict
   }
 
-  // Mongoose Validation Error
+  // Handle a Mongoose validation error
   if (err.name === 'ValidationError') {
     const message = Object.values(err.errors).map(val => val.message).join(', ');
     error = new AppError(message, 400);
   }
 
-  // JWT Errors
+  // Handle JWT-related errors
   if (err.name === 'JsonWebTokenError') {
     error = new AppError('Invalid token. Please log in again.', 401);
   }
