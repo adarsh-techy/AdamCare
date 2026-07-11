@@ -31,7 +31,7 @@ const SuperAdminDepartmentView = () => {
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/departments');
+      const res = await api.get('/departments/admin/all');
       setDepartments(res.data.data);
     } catch (e) {
       console.error('Failed to load departments:', e.message);
@@ -39,6 +39,11 @@ const SuperAdminDepartmentView = () => {
       setLoading(false);
     }
   }, []);
+
+  // Other tabs (Doctors, Schedules) stay mounted in the background and only
+  // fetch departments once on load, so they'd otherwise show stale data
+  // until a full page refresh — this notifies them to refetch immediately.
+  const notifyDepartmentsChanged = () => window.dispatchEvent(new Event('departments_changed'));
 
   useEffect(() => {
     fetchDepartments();
@@ -59,6 +64,7 @@ const SuperAdminDepartmentView = () => {
       setMessage('Department created successfully!');
       setNewDeptName('');
       fetchDepartments();
+      notifyDepartmentsChanged();
       setTimeout(() => { setShowCreateModal(false); setMessage(''); }, 1000);
     } catch (error) {
       setErr(error.response?.data?.message || 'Failed to create department');
@@ -82,6 +88,7 @@ const SuperAdminDepartmentView = () => {
       await api.put(`/departments/${editingDept._id}`, { name: editName, workingDays: editDays });
       setEditingDept(null);
       fetchDepartments();
+      notifyDepartmentsChanged();
     } catch (error) {
       setEditErr(error.response?.data?.message || 'Failed to update department');
     } finally { setEditLoading(false); }
@@ -93,6 +100,7 @@ const SuperAdminDepartmentView = () => {
       await api.put(`/departments/${blockingDept._id}`, { isActive: !blockingDept.isActive });
       setBlockingDept(null);
       fetchDepartments();
+      notifyDepartmentsChanged();
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to update department status');
     }
@@ -104,6 +112,7 @@ const SuperAdminDepartmentView = () => {
       await api.delete(`/departments/${deletingDeptId}`);
       setDeletingDeptId(null);
       fetchDepartments();
+      notifyDepartmentsChanged();
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to delete department');
     }

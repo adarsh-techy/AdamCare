@@ -138,6 +138,14 @@ const SuperAdminDoctorView = () => {
     fetchDepartments();
   }, [fetchDepartments]);
 
+  // Manage Clinic Departments stays mounted in another tab and dispatches
+  // this after any create/edit/block/delete, so this view's department
+  // options (filter, register, edit) stay live without a full page refresh.
+  useEffect(() => {
+    window.addEventListener('departments_changed', fetchDepartments);
+    return () => window.removeEventListener('departments_changed', fetchDepartments);
+  }, [fetchDepartments]);
+
   // Re-runs (resetting to page 1) whenever the department filter changes,
   // since fetchDoctors' identity changes with selectedDeptFilter.
   useEffect(() => {

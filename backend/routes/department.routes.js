@@ -1,11 +1,12 @@
 const express = require('express');
-const { getDepartments, createDepartment, updateDepartment, deleteDepartment } = require('../controllers/department.controller');
+const { getDepartments, getAllDepartmentsAdmin, createDepartment, updateDepartment, deleteDepartment } = require('../controllers/department.controller');
 const { protect } = require('../middlewares/auth.middleware');
 const { authorize } = require('../middlewares/rbac.middleware');
 
 const router = express.Router();
 
 router.get('/', getDepartments);
+router.get('/admin/all', protect, authorize('super_admin'), getAllDepartmentsAdmin);
 router.post('/', protect, authorize('super_admin'), createDepartment);
 router.put('/:id', protect, authorize('super_admin'), updateDepartment);
 router.delete('/:id', protect, authorize('super_admin'), deleteDepartment);

@@ -10,6 +10,14 @@ const getDepartments = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: departments });
 });
 
+// @desc    Get all departments including blocked ones (for admin management)
+// @route   GET /api/v1/departments/admin/all
+// @access  Private (Super Admin)
+const getAllDepartmentsAdmin = asyncHandler(async (req, res, next) => {
+  const departments = await Department.find({}).sort({ name: 1 });
+  res.status(200).json({ success: true, data: departments });
+});
+
 // @desc    Create a new department
 // @route   POST /api/v1/departments
 // @access  Private (Super Admin)
@@ -56,4 +64,4 @@ const deleteDepartment = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'Department deleted successfully' });
 });
 
-module.exports = { getDepartments, createDepartment, updateDepartment, deleteDepartment };
+module.exports = { getDepartments, getAllDepartmentsAdmin, createDepartment, updateDepartment, deleteDepartment };

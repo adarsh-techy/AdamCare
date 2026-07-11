@@ -118,6 +118,14 @@ const SuperAdminScheduleView = () => {
     fetchDepartments();
   }, [fetchDoctors, fetchDepartments]);
 
+  // Manage Clinic Departments stays mounted in another tab and dispatches
+  // this after any create/edit/block/delete, so this view's department data
+  // stays live without a full page refresh.
+  useEffect(() => {
+    window.addEventListener('departments_changed', fetchDepartments);
+    return () => window.removeEventListener('departments_changed', fetchDepartments);
+  }, [fetchDepartments]);
+
   // /departments only returns active (non-blocked) departments, so this
   // excludes doctors whose department has been blocked in Manage Clinic
   // Departments — a blocked department's doctors shouldn't be schedulable.
