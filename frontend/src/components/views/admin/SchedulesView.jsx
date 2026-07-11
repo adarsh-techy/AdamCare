@@ -156,18 +156,31 @@ const SuperAdminScheduleView = () => {
 
     const loadAll = async () => {
       try {
-        // 1. Fetch default schedule (use cache if already loaded for this doctor)
-        if (!defaultCacheRef.current[selectedDoc]) {
-          try {
-            const res = await api.get(`/doctors/${selectedDoc}/schedule`, { signal: controller.signal });
-            const sched = res.data.data;
+        const needsDefault = !defaultCacheRef.current[selectedDoc];
+
+        // Fetch the default schedule (only if not cached yet) and the
+        // date's override in parallel instead of one after another — this
+        // was the main source of the visible delay when picking a doctor.
+        const [defResult, ovResult] = await Promise.allSettled([
+          needsDefault
+            ? api.get(`/doctors/${selectedDoc}/schedule`, { signal: controller.signal })
+            : Promise.resolve(null),
+          api.get(`/doctors/${selectedDoc}/schedule/override?date=${selectedDate}`, { signal: controller.signal }),
+        ]);
+
+        if (controller.signal.aborted) return;
+
+        if (needsDefault) {
+          if (defResult.status === 'fulfilled') {
+            const sched = defResult.value.data.data;
             defaultCacheRef.current[selectedDoc] = {
               slotDuration: sched.slotDuration || 15,
               blocks: scheduleToBlocks(sched),
               workingDays: sched.workingDays
             };
-          } catch (e) {
-            if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return;
+          } else {
+            const e = defResult.reason;
+            if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
             defaultCacheRef.current[selectedDoc] = { slotDuration: 15, blocks: defaultBlocks(), workingDays: undefined };
           }
         }
@@ -176,13 +189,8 @@ const SuperAdminScheduleView = () => {
           ? defData.workingDays
           : defaultWorkingDays;
 
-        // 2. Try to fetch override for selected date
-        try {
-          const ovRes = await api.get(
-            `/doctors/${selectedDoc}/schedule/override?date=${selectedDate}`,
-            { signal: controller.signal }
-          );
-          const ov = ovRes.data.data;
+        if (ovResult.status === 'fulfilled') {
+          const ov = ovResult.value.data.data;
           const blocks = scheduleToBlocks(ov);
           const dur = ov.slotDuration || defData.slotDuration;
           setSlotDuration(dur);
@@ -190,8 +198,9 @@ const SuperAdminScheduleView = () => {
           setHasOverride(true);
           setWorkingDays(resolvedWorkingDays);
           setSavedSnapshot({ slotDuration: dur, timeBlocks: blocksToSnapshot(blocks), workingDays: resolvedWorkingDays });
-        } catch (e) {
-          if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return;
+        } else {
+          const e = ovResult.reason;
+          if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
           // No override — show default
           setSlotDuration(defData.slotDuration);
           setTimeBlocks(defData.blocks.map(b => ({ ...b })));
