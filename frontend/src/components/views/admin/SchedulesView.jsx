@@ -301,6 +301,14 @@ const SuperAdminScheduleView = () => {
     }
   };
 
+  const handleCancel = () => {
+    if (!savedSnapshot) return;
+    setSlotDuration(savedSnapshot.slotDuration);
+    setTimeBlocks(savedSnapshot.timeBlocks.map(b => ({ ...b })));
+    setWorkingDays([...savedSnapshot.workingDays]);
+    setErr('');
+  };
+
   const handleResetToDefault = async () => {
     if (!selectedDoc || !hasOverride) return;
     setLoading('reset');
@@ -705,6 +713,15 @@ const SuperAdminScheduleView = () => {
                       : 'Update Default'}
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={!!loading}
+                  className="px-6 h-11 bg-white border border-slate-200 text-slate-500 font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:translate-y-0 transition-all duration-200 cursor-pointer disabled:opacity-50 text-sm animate-[fadeIn_0.2s_ease-out]"
+                >
+                  Cancel
+                </button>
               </>
             )}
 
