@@ -91,6 +91,26 @@ const SuperAdminScheduleView = () => {
 
   // Cache default schedule per doctor so date changes don't re-fetch default
   const defaultCacheRef = useRef({});
+  // Cache override lookups per `${doctorId}::${date}` so revisiting a
+  // doctor/date combo renders instantly with no spinner or network call.
+  const overrideCacheRef = useRef({});
+  const prefetchedDoctorsRef = useRef(new Set());
+
+  const applyResolved = (defData, overrideEntry, resolvedWorkingDays) => {
+    if (overrideEntry.exists) {
+      setSlotDuration(overrideEntry.slotDuration);
+      setTimeBlocks(overrideEntry.blocks.map(b => ({ ...b })));
+      setHasOverride(true);
+      setWorkingDays(resolvedWorkingDays);
+      setSavedSnapshot({ slotDuration: overrideEntry.slotDuration, timeBlocks: blocksToSnapshot(overrideEntry.blocks), workingDays: resolvedWorkingDays });
+    } else {
+      setSlotDuration(defData.slotDuration);
+      setTimeBlocks(defData.blocks.map(b => ({ ...b })));
+      setHasOverride(false);
+      setWorkingDays(resolvedWorkingDays);
+      setSavedSnapshot({ slotDuration: defData.slotDuration, timeBlocks: blocksToSnapshot(defData.blocks), workingDays: resolvedWorkingDays });
+    }
+  };
 
   const fetchDoctors = useCallback(async () => {
     setListLoading(true);
@@ -150,17 +170,33 @@ const SuperAdminScheduleView = () => {
   // Fetch default + override whenever doctor or date changes
   useEffect(() => {
     if (!selectedDoc) { setSavedSnapshot(null); return; }
+    setErr('');
+
+    const cacheKey = `${selectedDoc}::${selectedDate}`;
+    const cachedDefault = defaultCacheRef.current[selectedDoc];
+    const cachedOverride = overrideCacheRef.current[cacheKey];
+
+    // Both pieces already cached (e.g. background prefetch, or revisiting a
+    // doctor/date already seen this session) — render instantly, no spinner,
+    // no network round trip at all.
+    if (cachedDefault && cachedOverride) {
+      const resolvedWorkingDays = (cachedDefault.workingDays && cachedDefault.workingDays.length > 0)
+        ? cachedDefault.workingDays
+        : defaultWorkingDays;
+      applyResolved(cachedDefault, cachedOverride, resolvedWorkingDays);
+      setScheduleLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     setScheduleLoading(true);
-    setErr('');
 
     const loadAll = async () => {
       try {
-        const needsDefault = !defaultCacheRef.current[selectedDoc];
+        const needsDefault = !cachedDefault;
 
-        // Fetch the default schedule (only if not cached yet) and the
-        // date's override in parallel instead of one after another — this
-        // was the main source of the visible delay when picking a doctor.
+        // Fetch whatever's missing in parallel instead of one after another
+        // — this was the main source of the visible delay when picking a doctor.
         const [defResult, ovResult] = await Promise.allSettled([
           needsDefault
             ? api.get(`/doctors/${selectedDoc}/schedule`, { signal: controller.signal })
@@ -189,25 +225,17 @@ const SuperAdminScheduleView = () => {
           ? defData.workingDays
           : defaultWorkingDays;
 
+        let overrideEntry;
         if (ovResult.status === 'fulfilled') {
           const ov = ovResult.value.data.data;
-          const blocks = scheduleToBlocks(ov);
-          const dur = ov.slotDuration || defData.slotDuration;
-          setSlotDuration(dur);
-          setTimeBlocks(blocks);
-          setHasOverride(true);
-          setWorkingDays(resolvedWorkingDays);
-          setSavedSnapshot({ slotDuration: dur, timeBlocks: blocksToSnapshot(blocks), workingDays: resolvedWorkingDays });
+          overrideEntry = { exists: true, slotDuration: ov.slotDuration || defData.slotDuration, blocks: scheduleToBlocks(ov) };
         } else {
           const e = ovResult.reason;
           if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
-          // No override — show default
-          setSlotDuration(defData.slotDuration);
-          setTimeBlocks(defData.blocks.map(b => ({ ...b })));
-          setHasOverride(false);
-          setWorkingDays(resolvedWorkingDays);
-          setSavedSnapshot({ slotDuration: defData.slotDuration, timeBlocks: blocksToSnapshot(defData.blocks), workingDays: resolvedWorkingDays });
+          overrideEntry = { exists: false };
         }
+        overrideCacheRef.current[cacheKey] = overrideEntry;
+        applyResolved(defData, overrideEntry, resolvedWorkingDays);
       } finally {
         if (!controller.signal.aborted) setScheduleLoading(false);
       }
@@ -216,6 +244,47 @@ const SuperAdminScheduleView = () => {
     loadAll();
     return () => controller.abort();
   }, [selectedDoc, selectedDate, defaultWorkingDays]);
+
+  // Warm the cache for every other doctor (today's date) in the background
+  // once the doctor list is in, so switching doctors afterwards is instant
+  // instead of showing the loading overlay again.
+  useEffect(() => {
+    if (!activeDoctors.length) return;
+    const today = getTodayDateStr();
+    activeDoctors.forEach((doc) => {
+      if (doc._id === selectedDoc) return;
+      if (prefetchedDoctorsRef.current.has(doc._id)) return;
+      prefetchedDoctorsRef.current.add(doc._id);
+
+      const cacheKey = `${doc._id}::${today}`;
+      const needsDefault = !defaultCacheRef.current[doc._id];
+      const needsOverride = !overrideCacheRef.current[cacheKey];
+      if (!needsDefault && !needsOverride) return;
+
+      Promise.allSettled([
+        needsDefault ? api.get(`/doctors/${doc._id}/schedule`) : Promise.resolve(null),
+        needsOverride ? api.get(`/doctors/${doc._id}/schedule/override?date=${today}`) : Promise.resolve(null),
+      ]).then(([defResult, ovResult]) => {
+        if (needsDefault && defResult.status === 'fulfilled') {
+          const sched = defResult.value.data.data;
+          defaultCacheRef.current[doc._id] = {
+            slotDuration: sched.slotDuration || 15,
+            blocks: scheduleToBlocks(sched),
+            workingDays: sched.workingDays
+          };
+        }
+        if (needsOverride) {
+          if (ovResult.status === 'fulfilled') {
+            const ov = ovResult.value.data.data;
+            const dur = ov.slotDuration || defaultCacheRef.current[doc._id]?.slotDuration || 15;
+            overrideCacheRef.current[cacheKey] = { exists: true, slotDuration: dur, blocks: scheduleToBlocks(ov) };
+          } else {
+            overrideCacheRef.current[cacheKey] = { exists: false };
+          }
+        }
+      }).catch(() => {});
+    });
+  }, [activeDoctors, selectedDoc]);
 
   const updateBlock = (id, field, value) =>
     setTimeBlocks(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
@@ -275,6 +344,7 @@ const SuperAdminScheduleView = () => {
     setErr('');
     try {
       await api.put(`/doctors/${selectedDoc}/schedule/override`, { date: selectedDate, sessions, slotDuration: dur, breakTimings });
+      overrideCacheRef.current[`${selectedDoc}::${selectedDate}`] = { exists: true, slotDuration: dur, blocks: timeBlocks.map(b => ({ ...b })) };
       setHasOverride(true);
       setSavedSnapshot({ slotDuration: dur, timeBlocks: blocksToSnapshot(timeBlocks), workingDays: [...workingDays] });
       setSuccessMsg(`Schedule saved for ${formattedDate} only.`);
@@ -324,6 +394,7 @@ const SuperAdminScheduleView = () => {
     setErr('');
     try {
       await api.delete(`/doctors/${selectedDoc}/schedule/override?date=${selectedDate}`);
+      overrideCacheRef.current[`${selectedDoc}::${selectedDate}`] = { exists: false };
       const defData = defaultCacheRef.current[selectedDoc];
       if (defData) {
         setSlotDuration(defData.slotDuration);

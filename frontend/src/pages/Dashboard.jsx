@@ -219,13 +219,15 @@ const Dashboard = () => {
   }, [socket]);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
   };
 
-  const handleConfirmLogout = () => {
-    dispatch(logoutUser());
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    await dispatch(logoutUser());
     navigate('/login');
   };
 
@@ -392,31 +394,41 @@ const Dashboard = () => {
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-slate-950/40 flex items-center justify-center z-[99999] p-4 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
-          <div className="bg-white border border-slate-200/80 shadow-2xl w-full max-w-[380px] p-6 rounded-2xl animate-[scaleIn_0.15s_ease-out] flex flex-col items-center text-center">
-            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-              <LogOut size={24} className="text-slate-600" />
+          {loggingOut ? (
+            <div className="bg-white border border-slate-200/80 shadow-2xl w-full max-w-[380px] p-8 rounded-2xl animate-[scaleIn_0.15s_ease-out] flex flex-col items-center text-center">
+              <div className="relative w-12 h-12 mb-4">
+                <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+                <div className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              </div>
+              <p className="text-sm font-semibold text-slate-600">Signing out...</p>
             </div>
-            <h3 className="text-lg font-heading font-bold text-slate-800 mb-1">Sign Out of EMR?</h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6">
-              You are about to end your current EMR session. Any unsaved changes may be lost.
-            </p>
-            <div className="flex gap-3 w-full">
-              <button
-                type="button"
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-grow h-11 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition cursor-pointer"
-              >
-                Stay Logged In
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmLogout}
-                className="flex-grow h-11 text-xs font-semibold text-white rounded-xl bg-slate-800 hover:bg-slate-900 shadow-md transition cursor-pointer"
-              >
-                Yes, Sign Out
-              </button>
+          ) : (
+            <div className="bg-white border border-slate-200/80 shadow-2xl w-full max-w-[380px] p-6 rounded-2xl animate-[scaleIn_0.15s_ease-out] flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                <LogOut size={24} className="text-slate-600" />
+              </div>
+              <h3 className="text-lg font-heading font-bold text-slate-800 mb-1">Sign Out of EMR?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                You are about to end your current EMR session. Any unsaved changes may be lost.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-grow h-11 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition cursor-pointer"
+                >
+                  Stay Logged In
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmLogout}
+                  className="flex-grow h-11 text-xs font-semibold text-white rounded-xl bg-slate-800 hover:bg-slate-900 shadow-md transition cursor-pointer"
+                >
+                  Yes, Sign Out
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
