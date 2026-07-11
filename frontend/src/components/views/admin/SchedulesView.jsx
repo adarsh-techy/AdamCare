@@ -94,7 +94,6 @@ const SuperAdminScheduleView = () => {
   // Cache override lookups per `${doctorId}::${date}` so revisiting a
   // doctor/date combo renders instantly with no spinner or network call.
   const overrideCacheRef = useRef({});
-  const prefetchedDoctorsRef = useRef(new Set());
 
   const applyResolved = (defData, overrideEntry, resolvedWorkingDays) => {
     if (overrideEntry.exists) {
@@ -244,47 +243,6 @@ const SuperAdminScheduleView = () => {
     loadAll();
     return () => controller.abort();
   }, [selectedDoc, selectedDate, defaultWorkingDays]);
-
-  // Warm the cache for every other doctor (today's date) in the background
-  // once the doctor list is in, so switching doctors afterwards is instant
-  // instead of showing the loading overlay again.
-  useEffect(() => {
-    if (!activeDoctors.length) return;
-    const today = getTodayDateStr();
-    activeDoctors.forEach((doc) => {
-      if (doc._id === selectedDoc) return;
-      if (prefetchedDoctorsRef.current.has(doc._id)) return;
-      prefetchedDoctorsRef.current.add(doc._id);
-
-      const cacheKey = `${doc._id}::${today}`;
-      const needsDefault = !defaultCacheRef.current[doc._id];
-      const needsOverride = !overrideCacheRef.current[cacheKey];
-      if (!needsDefault && !needsOverride) return;
-
-      Promise.allSettled([
-        needsDefault ? api.get(`/doctors/${doc._id}/schedule`) : Promise.resolve(null),
-        needsOverride ? api.get(`/doctors/${doc._id}/schedule/override?date=${today}`) : Promise.resolve(null),
-      ]).then(([defResult, ovResult]) => {
-        if (needsDefault && defResult.status === 'fulfilled') {
-          const sched = defResult.value.data.data;
-          defaultCacheRef.current[doc._id] = {
-            slotDuration: sched.slotDuration || 15,
-            blocks: scheduleToBlocks(sched),
-            workingDays: sched.workingDays
-          };
-        }
-        if (needsOverride) {
-          if (ovResult.status === 'fulfilled') {
-            const ov = ovResult.value.data.data;
-            const dur = ov.slotDuration || defaultCacheRef.current[doc._id]?.slotDuration || 15;
-            overrideCacheRef.current[cacheKey] = { exists: true, slotDuration: dur, blocks: scheduleToBlocks(ov) };
-          } else {
-            overrideCacheRef.current[cacheKey] = { exists: false };
-          }
-        }
-      }).catch(() => {});
-    });
-  }, [activeDoctors, selectedDoc]);
 
   const updateBlock = (id, field, value) =>
     setTimeBlocks(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
