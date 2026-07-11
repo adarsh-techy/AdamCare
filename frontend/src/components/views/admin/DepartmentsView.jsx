@@ -24,6 +24,7 @@ const SuperAdminDepartmentView = () => {
 
   // Block confirm modal state
   const [blockingDept, setBlockingDept] = useState(null);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   // Delete confirm modal state
   const [deletingDeptId, setDeletingDeptId] = useState(null);
@@ -99,6 +100,7 @@ const SuperAdminDepartmentView = () => {
 
   // Block / Unblock
   const handleConfirmBlock = async () => {
+    setBlockLoading(true);
     try {
       await api.put(`/departments/${blockingDept._id}`, { isActive: !blockingDept.isActive });
       setBlockingDept(null);
@@ -106,6 +108,8 @@ const SuperAdminDepartmentView = () => {
       notifyDepartmentsChanged();
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to update department status');
+    } finally {
+      setBlockLoading(false);
     }
   };
 
@@ -299,9 +303,11 @@ const SuperAdminDepartmentView = () => {
                 : `Are you sure you want to block "${blockingDept.name}"? It will be marked as inactive.`}
             </p>
             <div className="flex gap-3 w-full">
-              <button type="button" onClick={() => setBlockingDept(null)} className="flex-grow h-11 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition cursor-pointer border border-slate-200">Cancel</button>
-              <button type="button" onClick={handleConfirmBlock} className={`flex-grow h-11 text-xs font-semibold text-white rounded-xl shadow-md transition cursor-pointer ${blockingDept.isActive === false ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}>
-                {blockingDept.isActive === false ? 'Confirm Unblock' : 'Confirm Block'}
+              <button type="button" disabled={blockLoading} onClick={() => setBlockingDept(null)} className="flex-grow h-11 text-xs font-semibold rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition cursor-pointer border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+              <button type="button" disabled={blockLoading} onClick={handleConfirmBlock} className={`flex-grow h-11 text-xs font-semibold text-white rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${blockingDept.isActive === false ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}>
+                {blockLoading
+                  ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/40 border-t-white"></div>
+                  : (blockingDept.isActive === false ? 'Confirm Unblock' : 'Confirm Block')}
               </button>
             </div>
           </div>
